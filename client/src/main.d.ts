@@ -1,0 +1,2 @@
+/** @format */
+import "./index.css";

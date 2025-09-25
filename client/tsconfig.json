@@ -1,0 +1,16 @@
+//client/tsconfig.json
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "esModuleInterop": true, //added
+    "allowSyntheticDefaultImports": true, // added
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "../shared" }]
+}

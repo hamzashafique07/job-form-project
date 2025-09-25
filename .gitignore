@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+package-lock.json
+
+# builds
+dist/
+build/
+
+# env files
+.env
+
+# misc
+*.log
+.DS_Store
+
