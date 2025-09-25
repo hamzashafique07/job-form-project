@@ -13,3 +13,9 @@ build/
 *.log
 .DS_Store
 
+# TypeScript build info
+*.tsbuildinfo
+
+# Prevent accidental compiled JS in src
+client/src/*.js
+

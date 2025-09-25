@@ -58,7 +58,7 @@ export const phoneSchema = z
 
 export const consentSchema = z
   .boolean()
-  .refine((v) => v === true, { message: "consent.required" });
+  .refine((v: boolean) => v === true, { message: "consent.required" });
 
 export const signatureBase64Schema = z
   .string()
@@ -81,7 +81,7 @@ export const addressObjectSchema = z.object({
 export const personalDetailsSchema = z.object({
   iva: ivaSchema,
   title: titleSchema,
-  firstName: nameSchema.transform((s) => s.trim()),
+  firstName: nameSchema.transform((s: string) => s.trim()),
   lastName: nameSchema.transform((s) => s.trim()),
   dob: dobSchema,
   email: emailSchema.transform((s) => s.toLowerCase()),
