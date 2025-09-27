@@ -3,7 +3,7 @@
 //client/src/App.tsx
 /** @format */
 
-import HelloForm from "./components/form/HelloForm";
+import MultiStepForm from "./components/form/MultiStepForm";
 
 export default function App() {
   return (
@@ -13,9 +13,10 @@ export default function App() {
           <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
             Form Project
           </h1>
-          <HelloForm />
+          <MultiStepForm />
         </div>
       </div>
     </div>
   );
 }
+

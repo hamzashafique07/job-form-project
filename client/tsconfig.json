@@ -3,12 +3,14 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "composite": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "esModuleInterop": true, //added
     "allowSyntheticDefaultImports": true, // added
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@job-form/shared": ["../shared/dist"]
     }
   },
   "include": ["src"],

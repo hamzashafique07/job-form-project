@@ -1,4 +1,16 @@
 {
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "start": "node server/dist/server.js"
+  },
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
   "dependencies": {
     "zod": "^4.1.11"
   },

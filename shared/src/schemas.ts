@@ -1,15 +1,15 @@
-/** @format */
-
 // shared/schemas.ts
+/** @format */
 import { z } from "zod";
 
 /**
- * Each Zod validation error message is set to a stable "error key"
- * (e.g. 'firstName.minLength') so the server can map it to the exact
- * human message texts in the backlog.
+ * Shared Zod schemas for the project.
+ * Each schema uses stable "error key" messages (e.g. 'firstName.minLength')
+ * so server can map them to human strings.
  */
 
-/* Field schemas (with error-key messages) */
+/* ---- Primitive / Field schemas ---- */
+
 export const ivaSchema = z.enum(["Yes", "No"], {
   message: "iva.required",
 });
@@ -20,31 +20,24 @@ export const titleSchema = z.enum(["Mr", "Mrs", "Miss", "Ms"], {
 
 export const nameSchema = z
   .string()
-  .min(1, { message: "field.required" }) // for empty string -> generic required (can map to name-specific if needed)
-  .min(2, { message: "firstName.minLength" }) // will be used for firstName/lastName specifically
+  .min(1, { message: "field.required" }) // empty -> generic required
+  .min(2, { message: "firstName.minLength" }) // used for first/last
   .regex(/^[A-Za-z ]+$/, { message: "firstName.invalidChars" })
   .max(100, { message: "field.tooLong" });
 
 export const dobSchema = z
   .string()
   .min(1, { message: "dob.required" })
-  .refine(
-    (val) => {
-      const d = new Date(val);
-      return !isNaN(d.getTime());
-    },
-    { message: "dob.invalid" }
-  )
-  .refine(
-    (val) => {
-      const d = new Date(val);
-      // robust: compute 18 years difference
-      const minDob = new Date();
-      minDob.setFullYear(minDob.getFullYear() - 18);
-      return d <= minDob;
-    },
-    { message: "dob.underage" }
-  );
+  .refine((val: string) => {
+    const d = new Date(val);
+    return !isNaN(d.getTime());
+  }, { message: "dob.invalid" })
+  .refine((val: string) => {
+    const d = new Date(val);
+    const minDob = new Date();
+    minDob.setFullYear(minDob.getFullYear() - 18);
+    return d <= minDob;
+  }, { message: "dob.underage" });
 
 export const emailSchema = z
   .string()
@@ -69,6 +62,7 @@ export const currentPostcodeSchema = z
   .min(1, { message: "currentPostcode.required" })
   .regex(/^\d{5,7}$/, { message: "currentPostcode.format" });
 
+/* Address object used for current/previous addresses */
 export const addressObjectSchema = z.object({
   house: z.string().min(1, { message: "address.field.required" }),
   street: z.string().min(1, { message: "address.field.required" }),
@@ -77,23 +71,9 @@ export const addressObjectSchema = z.object({
   postcode: z.string().min(1, { message: "address.field.required" }),
 });
 
-/* Full personal details schema (used later). For Phase 1 we will call getSchemaForStep('hello') */
-export const personalDetailsSchema = z.object({
-  iva: ivaSchema,
-  title: titleSchema,
-  firstName: nameSchema.transform((s: string) => s.trim()),
-  lastName: nameSchema.transform((s) => s.trim()),
-  dob: dobSchema,
-  email: emailSchema.transform((s) => s.toLowerCase()),
-  phone: phoneSchema,
-  consent: consentSchema,
-  signatureBase64: signatureBase64Schema,
-  currentPostcode: currentPostcodeSchema,
-  currentAddress: addressObjectSchema.optional(),
-  previousAddress: addressObjectSchema.optional(),
-});
+/* ---- Higher-level / step schemas ---- */
 
-/* Hello (minimal) schema for the HelloForm demo — single field example */
+/* Hello (single-field demonstration) */
 export const helloSchema = z.object({
   firstName: z
     .string()
@@ -103,18 +83,52 @@ export const helloSchema = z.object({
     .max(100, { message: "firstName.tooLong" }),
 });
 
-/* Export a helper: pick schema by stepId */
+/* Personal details (core form) */
+export const personalDetailsSchema = z.object({
+  iva: ivaSchema,
+  title: titleSchema,
+  firstName: nameSchema.transform((s: string) => s.trim()),
+  lastName: nameSchema.transform((s: string) => s.trim()),
+  dob: dobSchema,
+  email: emailSchema.transform((s: string) => s.toLowerCase()),
+  phone: phoneSchema,
+  consent: consentSchema,
+  signatureBase64: signatureBase64Schema.optional(), // final submit requires this; optional for partial saves
+  currentPostcode: currentPostcodeSchema,
+  currentAddress: addressObjectSchema.optional(),
+  previousAddress: addressObjectSchema.optional(),
+});
+
+/* Address lookup step: only postcode required for lookup */
+export const addressLookupSchema = z.object({
+  postcode: currentPostcodeSchema,
+});
+
+/* Final submit schema — full validation (similar to personalDetails but signature required) */
+export const finalSubmitSchema = personalDetailsSchema.extend({
+  signatureBase64: signatureBase64Schema,
+});
+
+/* ---- Utility: schema picker by stepId (centralised) ---- */
+
 export function getSchemaForStep(stepId: string) {
   switch (stepId) {
     case "hello":
       return helloSchema;
     case "personal-details":
       return personalDetailsSchema;
+    case "address-lookup":
+      return addressLookupSchema;
+    case "submit":
+    case "final":
+      return finalSubmitSchema;
     default:
       return undefined;
   }
 }
 
-/* Export zod types if needed */
+/* ---- Types exported for consuming projects (client/server) ---- */
 export type PersonalDetails = z.infer<typeof personalDetailsSchema>;
 export type HelloData = z.infer<typeof helloSchema>;
+export type AddressLookup = z.infer<typeof addressLookupSchema>;
+export type FinalSubmit = z.infer<typeof finalSubmitSchema>;
