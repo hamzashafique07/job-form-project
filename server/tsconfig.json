@@ -14,8 +14,8 @@
     "paths": {
     "@job-form/shared": ["../shared/dist"],
     "@job-form/shared/*": ["../shared/dist/*"]
- }
-
+ },
+    "types": ["node"]   // ✅ add this line
   },
   "include": [
     "src/app.ts", 

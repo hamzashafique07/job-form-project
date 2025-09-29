@@ -1,4 +1,4 @@
-//client/src/components/form/MultiStepForm.tsx
+// client/src/components/form/MultiStepForm.tsx
 /** @format */
 import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -28,7 +28,8 @@ export default function MultiStepForm() {
     handleSubmit,
     formState,
     reset,
-    setError, // ✅ add setError here
+    setError,
+    setValue, // <-- added so children can transform onBlur
   } = useForm<FormData>({
     resolver: schema ? zodResolver(schema) : undefined,
     defaultValues: {},
@@ -54,7 +55,6 @@ export default function MultiStepForm() {
           alert("Form completed successfully ✅");
         }
       } else {
-        // ✅ Use setError so RHF shows server errors directly
         if (Array.isArray(body.errors)) {
           body.errors.forEach((e: { field: string; message: string }) => {
             setError(e.field as any, { type: "server", message: e.message });
@@ -78,7 +78,11 @@ export default function MultiStepForm() {
         )}
 
         {currentStep === "personal-details" && (
-          <PersonalDetailsForm register={register} errors={formState.errors} />
+          <PersonalDetailsForm
+            register={register}
+            errors={formState.errors}
+            setValue={setValue} // pass setter for onBlur transforms
+          />
         )}
 
         {currentStep === "address-lookup" && (

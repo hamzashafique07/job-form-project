@@ -2,53 +2,41 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { getSchemaForStep } from "@job-form/shared/schemas";
-import { mapErrorKeyToMessage } from "../utils/errorMap";
-import Form from "../models/Form";
 
+// POST /api/forms/validate-step
 export async function validateStep(req: Request, res: Response) {
-  const { stepId, data, formId } = req.body;
-  const schema = getSchemaForStep(stepId);
-
-  if (!schema) {
-    return res
-      .status(400)
-      .json({ errors: [{ field: "stepId", message: "Invalid stepId" }] });
-  }
-
   try {
+    const { stepId, data } = req.body;
+
+    if (!stepId || !data) {
+      return res.status(400).json({
+        errors: [{ field: "general", message: "Missing stepId or data" }],
+      });
+    }
+
+    const schema = getSchemaForStep(stepId);
+    if (!schema) {
+      return res.status(400).json({
+        errors: [{ field: "stepId", message: "Unknown stepId" }],
+      });
+    }
+
     schema.parse(data);
 
-    const DEFAULT_AFF_ID = process.env.DEFAULT_AFF_ID || "AFF_DEFAULT";
-
-    const updateData = {
-      ...data,
-      aff_id: data.aff_id || DEFAULT_AFF_ID,
-      "meta.ip": req.ip,
-      "meta.userAgent": req.headers["user-agent"] || "unknown",
-      updatedAt: new Date(),
-    };
-
-    let form;
-    if (formId) {
-      form = await Form.findByIdAndUpdate(formId, { $set: updateData }, { new: true });
-    } else {
-      form = await Form.create(updateData);
-    }
-
-    return res.json({ valid: true, formId: form._id });
+    return res.json({ valid: true });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      const errors = err.issues.map((issue) => {
-        const field = issue.path.join(".") || "field";
-        const message = mapErrorKeyToMessage(issue.message) || issue.message;
-        return { field, message };
+      return res.status(400).json({
+        errors: err.issues.map((e) => ({
+          field: e.path.join(".") || "field",
+          message: e.message,
+        })),
       });
-      return res.status(400).json({ errors });
     }
 
-    console.error(err);
-    return res
-      .status(500)
-      .json({ errors: [{ field: "field", message: "Internal error" }] });
+    console.error("❌ validateStep error:", err);
+    return res.status(500).json({
+      errors: [{ field: "server", message: "Internal server error" }],
+    });
   }
 }

@@ -1,8 +1,5 @@
 /** @format */
-
-// client/vite.config.ts
-/** @format */
-
+//client/vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
@@ -14,6 +11,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": fileURLToPath(new URL("../shared", import.meta.url)),
+    },
+  },
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:4000", // Express backend port
+        changeOrigin: true,
+      },
     },
   },
 });

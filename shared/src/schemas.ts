@@ -94,7 +94,7 @@ export const personalDetailsSchema = z.object({
   phone: phoneSchema,
   consent: consentSchema,
   signatureBase64: signatureBase64Schema.optional(), // final submit requires this; optional for partial saves
-  currentPostcode: currentPostcodeSchema,
+  currentPostcode: currentPostcodeSchema.optional(), // used in address lookup step
   currentAddress: addressObjectSchema.optional(),
   previousAddress: addressObjectSchema.optional(),
 });
