@@ -1,4 +1,4 @@
-// client/src/components/form/PersonalDetailsForm.tsx
+//client/src/components/form/PersonalDetailsForm.tsx
 /** @format */
 import TextInput from "../ui/TextInput";
 import React from "react";
@@ -6,7 +6,7 @@ import React from "react";
 type Props = {
   register: any;
   errors: Record<string, any>;
-  setValue: (name: string, value: any, opts?: any) => void; // ✅ allow setValue
+  setValue: (name: string, value: any, opts?: any) => void;
 };
 
 function toTitleCase(s: string) {
@@ -29,35 +29,6 @@ export default function PersonalDetailsForm({
     return d.toISOString().slice(0, 10);
   })();
 
-  const firstReg = register("firstName");
-  const lastReg = register("lastName");
-  const emailReg = register("email");
-  const dobReg = register("dob");
-  const phoneReg = register("phone");
-  const ivaReg = register("iva");
-  const titleReg = register("title");
-  const consentReg = register("consent");
-
-  const handleFirstBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const v = (e.target.value || "").trim();
-    const tc = toTitleCase(v);
-    setValue("firstName", tc, { shouldValidate: true, shouldDirty: true });
-    firstReg.onBlur && firstReg.onBlur(e);
-  };
-
-  const handleLastBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const v = (e.target.value || "").trim();
-    const tc = toTitleCase(v);
-    setValue("lastName", tc, { shouldValidate: true, shouldDirty: true });
-    lastReg.onBlur && lastReg.onBlur(e);
-  };
-
-  const handleEmailBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const v = (e.target.value || "").trim().toLowerCase();
-    setValue("email", v, { shouldValidate: true, shouldDirty: true });
-    emailReg.onBlur && emailReg.onBlur(e);
-  };
-
   return (
     <>
       {/* IVA */}
@@ -67,15 +38,17 @@ export default function PersonalDetailsForm({
         </label>
         <div className="flex gap-4 mt-2">
           <label>
-            <input type="radio" value="Yes" {...ivaReg} />{" "}
+            <input type="radio" value="Yes" {...register("iva")} />{" "}
             <span className="ml-1">Yes</span>
           </label>
           <label>
-            <input type="radio" value="No" {...ivaReg} />{" "}
+            <input type="radio" value="No" {...register("iva")} />{" "}
             <span className="ml-1">No</span>
           </label>
         </div>
-        {errors.iva && <p className="text-red-600 mt-1">{errors.iva.message}</p>}
+        {errors.iva && (
+          <p className="text-red-600 mt-1">{errors.iva.message}</p>
+        )}
       </div>
 
       {/* Title */}
@@ -84,7 +57,7 @@ export default function PersonalDetailsForm({
         <div className="flex gap-4 mt-2">
           {["Mr", "Mrs", "Miss", "Ms"].map((t) => (
             <label key={t}>
-              <input type="radio" value={t} {...titleReg} />{" "}
+              <input type="radio" value={t} {...register("title")} />{" "}
               <span className="ml-1">{t}</span>
             </label>
           ))}
@@ -98,8 +71,13 @@ export default function PersonalDetailsForm({
       <TextInput
         label="First name"
         placeholder="Enter first name"
-        {...firstReg}
-        onBlur={handleFirstBlur}
+        {...register("firstName")}
+        onBlur={(e) =>
+          setValue("firstName", toTitleCase(e.target.value.trim()), {
+            shouldValidate: true,
+            shouldDirty: true,
+          })
+        }
         error={errors.firstName?.message}
       />
 
@@ -107,8 +85,13 @@ export default function PersonalDetailsForm({
       <TextInput
         label="Last name"
         placeholder="Enter last name"
-        {...lastReg}
-        onBlur={handleLastBlur}
+        {...register("lastName")}
+        onBlur={(e) =>
+          setValue("lastName", toTitleCase(e.target.value.trim()), {
+            shouldValidate: true,
+            shouldDirty: true,
+          })
+        }
         error={errors.lastName?.message}
       />
 
@@ -117,7 +100,7 @@ export default function PersonalDetailsForm({
         label="Date of birth"
         type="date"
         max={maxDob}
-        {...dobReg}
+        {...register("dob")}
         error={errors.dob?.message}
       />
 
@@ -126,8 +109,13 @@ export default function PersonalDetailsForm({
         label="Email"
         type="email"
         placeholder="example@domain.com"
-        {...emailReg}
-        onBlur={handleEmailBlur}
+        {...register("email")}
+        onBlur={(e) =>
+          setValue("email", e.target.value.trim().toLowerCase(), {
+            shouldValidate: true,
+            shouldDirty: true,
+          })
+        }
         error={errors.email?.message}
       />
 
@@ -136,16 +124,20 @@ export default function PersonalDetailsForm({
         label="Phone"
         type="tel"
         placeholder="07123 456789"
-        inputMode="tel"
-        pattern="^07\\d{9}$"
-        {...phoneReg}
+        inputMode="numeric"
+        maxLength={11}
+        {...register("phone")}
+        onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const clean = e.currentTarget.value.replace(/\D/g, "").slice(0, 11);
+          setValue("phone", clean, { shouldValidate: true, shouldDirty: true });
+        }}
         error={errors.phone?.message}
       />
 
       {/* Consent */}
       <div className="mt-4">
         <label className="flex items-center gap-2">
-          <input type="checkbox" {...consentReg} />
+          <input type="checkbox" {...register("consent")} />
           <span>I consent to the terms and conditions</span>
         </label>
         {errors.consent && (

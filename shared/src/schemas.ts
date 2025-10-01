@@ -28,16 +28,22 @@ export const nameSchema = z
 export const dobSchema = z
   .string()
   .min(1, { message: "dob.required" })
-  .refine((val: string) => {
-    const d = new Date(val);
-    return !isNaN(d.getTime());
-  }, { message: "dob.invalid" })
-  .refine((val: string) => {
-    const d = new Date(val);
-    const minDob = new Date();
-    minDob.setFullYear(minDob.getFullYear() - 18);
-    return d <= minDob;
-  }, { message: "dob.underage" });
+  .refine(
+    (val: string) => {
+      const d = new Date(val);
+      return !isNaN(d.getTime());
+    },
+    { message: "dob.invalid" }
+  )
+  .refine(
+    (val: string) => {
+      const d = new Date(val);
+      const minDob = new Date();
+      minDob.setFullYear(minDob.getFullYear() - 18);
+      return d <= minDob;
+    },
+    { message: "dob.underage" }
+  );
 
 export const emailSchema = z
   .string()
