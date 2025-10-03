@@ -66,7 +66,9 @@ export const signatureBase64Schema = z
 export const currentPostcodeSchema = z
   .string()
   .min(1, { message: "currentPostcode.required" })
-  .regex(/^\d{5,7}$/, { message: "currentPostcode.format" });
+  .regex(/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/, {
+    message: "currentPostcode.format",
+  });
 
 /* Address object used for current/previous addresses */
 export const addressObjectSchema = z.object({
@@ -100,25 +102,38 @@ export const personalDetailsSchema = z.object({
   phone: phoneSchema,
   consent: consentSchema,
   signatureBase64: signatureBase64Schema.optional(), // final submit requires this; optional for partial saves
-  currentPostcode: currentPostcodeSchema.optional(), // used in address lookup step
-  currentAddress: addressObjectSchema.optional(),
-  previousAddress: addressObjectSchema.optional(),
+  // currentPostcode: currentPostcodeSchema.optional(), // used in address lookup step
+  // currentAddress: addressObjectSchema.optional(),
+  // previousAddress: addressObjectSchema.optional(),
 });
 
 /* Address lookup step: only postcode required for lookup */
 export const addressLookupSchema = z.object({
-  postcode: currentPostcodeSchema,
+  currentPostcode: currentPostcodeSchema,
+  currentAddress: addressObjectSchema.optional(),
+  previousPostcode: currentPostcodeSchema.optional(),
+  previousAddress: addressObjectSchema.optional(),
+});
+
+/* PostcodeSchema */
+export const postcodeSchema = z.object({
+  currentPostcode: currentPostcodeSchema,
 });
 
 /* Final submit schema — full validation (similar to personalDetails but signature required) */
 export const finalSubmitSchema = personalDetailsSchema.extend({
-  signatureBase64: signatureBase64Schema,
+  signatureBase64: signatureBase64Schema, // now required
+  // Ensure addresses are included on final submit
+  currentAddress: addressObjectSchema,
+  previousAddress: addressObjectSchema.optional(),
 });
 
 /* ---- Utility: schema picker by stepId (centralised) ---- */
 
 export function getSchemaForStep(stepId: string) {
   switch (stepId) {
+    case "postcode":
+      return postcodeSchema;
     case "hello":
       return helloSchema;
     case "personal-details":
@@ -134,7 +149,17 @@ export function getSchemaForStep(stepId: string) {
 }
 
 /* ---- Types exported for consuming projects (client/server) ---- */
+
 export type PersonalDetails = z.infer<typeof personalDetailsSchema>;
 export type HelloData = z.infer<typeof helloSchema>;
 export type AddressLookup = z.infer<typeof addressLookupSchema>;
 export type FinalSubmit = z.infer<typeof finalSubmitSchema>;
+export type PostcodeData = z.infer<typeof postcodeSchema>;
+
+// Use union, not intersection
+export type FormData =
+  | HelloData
+  | PersonalDetails
+  | AddressLookup
+  | FinalSubmit
+  | PostcodeData;

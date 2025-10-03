@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import healthRoutes from "./routes/healthRoute";
 import { formRoute } from "./routes/formRoute";
+import addressRoutes from "./routes/address";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(express.json());
 // routes
 app.use("/api/health", healthRoutes);
 app.use("/api/forms", formRoute);
+app.use("/api/address", addressRoutes);
 
 export async function initApp() {
   try {

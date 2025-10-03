@@ -2,7 +2,8 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { getSchemaForStep } from "@job-form/shared/schemas";
-import Form from "../models/Form"; // ✅ make sure this model exists
+import Form from "../models/Form";
+import { mapStepId } from "../utils/stepIdMapper";
 
 // POST /api/forms/validate-step
 export async function validateStep(req: Request, res: Response) {
@@ -16,25 +17,58 @@ export async function validateStep(req: Request, res: Response) {
     }
 
     const schema = getSchemaForStep(stepId);
+
     if (!schema) {
+      console.error("getSchemaForStep returned undefined for stepId:", stepId);
       return res.status(400).json({
         errors: [{ field: "stepId", message: "Unknown stepId" }],
       });
     }
 
-    // ✅ validate step data with Zod
+    // ✅ validate step data
     schema.parse(data);
 
-    // ✅ ensure formId exists (reuse or create new Form)
+    // Map external stepId to internal Mongo path
+    const mappedPath = mapStepId(stepId);
+    if (!mappedPath) {
+      return res.status(400).json({
+        errors: [{ field: "stepId", message: "Invalid mapping for stepId" }],
+      });
+    }
+
+    // helper: create nested object for mappedPath "addressLookup.postcode"
+    function buildNestedObject(path: string, value: any) {
+      const parts = path.split(".");
+      const out: any = {};
+      let cur = out;
+      for (let i = 0; i < parts.length; i++) {
+        const k = parts[i];
+        if (i === parts.length - 1) {
+          cur[k] = value;
+        } else {
+          cur[k] = {};
+          cur = cur[k];
+        }
+      }
+      return out;
+    }
+
     let form = null;
     if (formId) {
+      // update: set the nested path using dot notation
       form = await Form.findByIdAndUpdate(
         formId,
-        { $set: { ...data, updatedAt: new Date() } },
+        { $set: { [`steps.${mappedPath}`]: data, updatedAt: new Date() } },
         { new: true }
       );
     } else {
-      form = await Form.create({ ...data });
+      // create: create nested steps object according to mappedPath
+      const stepsObj = buildNestedObject(mappedPath, data);
+      form = await Form.create({ steps: stepsObj });
+    }
+
+    if (!form) {
+      return res.status(500).json({ error: "Failed to save form" });
     }
 
     return res.json({ valid: true, formId: form._id.toString() });
@@ -65,7 +99,7 @@ export async function saveForm(req: Request, res: Response) {
 
     const form = await Form.findOneAndUpdate(
       { _id: formId },
-      { ...data, updatedAt: new Date() },
+      { $set: { ...data, updatedAt: new Date() } },
       { upsert: true, new: true }
     );
 
@@ -81,16 +115,20 @@ export async function submitForm(req: Request, res: Response) {
   try {
     const { formId, data } = req.body;
 
-    const schema = getSchemaForStep("fullForm");
-    schema.parse(data); // ✅ full Zod validation
+    const schema = getSchemaForStep("submit"); // ✅ use final schema
+    schema.parse(data);
 
     const form = await Form.findOneAndUpdate(
       { _id: formId },
-      { ...data, updatedAt: new Date() },
+      { $set: { final: data, updatedAt: new Date() } },
       { upsert: true, new: true }
     );
 
-    // TODO: push to CRM here
+    if (!form) {
+      return res.status(500).json({ error: "Failed to submit form" });
+    }
+
+    // TODO: push to CRM or external system
     return res.json({ success: true, form });
   } catch (err) {
     if (err instanceof z.ZodError) {

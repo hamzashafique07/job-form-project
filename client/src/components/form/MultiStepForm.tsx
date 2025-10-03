@@ -1,20 +1,25 @@
 //client/src/components/form/MultiStepForm.tsx
 /** @format */
 import { useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getSchemaForStep, FormData } from "@job-form/shared/schemas";
 
 import Button from "../ui/Button";
 import FormCard from "../ui/FormCard";
 
-import HelloForm from "./HelloForm";
+import PostcodeForm from "./Postcodeform";
 import PersonalDetailsForm from "./PersonalDetailsForm";
 import AddressLookupForm from "./AddressLookupForm";
 import FinalSubmitForm from "./FinalSubmitForm";
 
 // Step order
-const steps = ["hello", "personal-details", "address-lookup", "final"] as const;
+const steps = [
+  "postcode",
+  "personal-details",
+  "address-lookup",
+  "final",
+] as const;
 
 export default function MultiStepForm() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -25,18 +30,22 @@ export default function MultiStepForm() {
 
   console.log("🔍 currentStep:", currentStep, "using schema:", schema);
 
+  // Use `methods` so we can pass the whole form context via FormProvider
+  const methods = useForm<FormData>({
+    resolver: schema ? zodResolver(schema) : undefined,
+    defaultValues: {},
+  });
+
+  // Still pull commonly used items for convenience
   const {
     register,
     handleSubmit,
     formState,
     reset,
     setError,
-    setValue, // <-- for onBlur transforms
-    getValues, // <-- to grab full form data at the end
-  } = useForm<FormData>({
-    resolver: schema ? zodResolver(schema) : undefined,
-    defaultValues: {},
-  });
+    setValue,
+    getValues,
+  } = methods;
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     console.log(
@@ -47,6 +56,15 @@ export default function MultiStepForm() {
       "formId:",
       formId
     );
+    // 🔍 Debugging validation at the client side
+    console.log("StepId:", currentStep, getSchemaForStep(currentStep));
+    const stepSchema = getSchemaForStep(currentStep);
+    if (!stepSchema) {
+      console.error("❌ No schema found for step:", currentStep);
+    } else {
+      console.log("SafeParse result:", stepSchema.safeParse(data));
+    }
+
     try {
       console.log("→ calling /api/forms/validate-step", {
         stepId: currentStep,
@@ -185,52 +203,53 @@ export default function MultiStepForm() {
 
   return (
     <FormCard title={`Step ${currentStepIndex + 1}: ${currentStep}`}>
-      <form
-        noValidate
-        onSubmit={(e) => {
-          console.log("➡️ form submit event fired for step:", currentStep);
-          handleSubmit(onSubmit, (errors) => {
-            console.warn("❌ validation failed, errors:", errors);
-          })(e);
-        }}
-      >
-        {currentStep === "hello" && (
-          <HelloForm register={register} errors={formState.errors} />
-        )}
-
-        {currentStep === "personal-details" && (
-          <PersonalDetailsForm
-            register={register}
-            errors={formState.errors}
-            setValue={setValue}
-          />
-        )}
-
-        {currentStep === "address-lookup" && (
-          <AddressLookupForm register={register} errors={formState.errors} />
-        )}
-
-        {currentStep === "final" && (
-          <FinalSubmitForm register={register} errors={formState.errors} />
-        )}
-
-        <Button type="submit">
-          {currentStepIndex < steps.length - 1 ? "Next Step" : "Submit"}
-        </Button>
-
-        {/* Debug fallback button: directly invoke handleSubmit to bypass native form submission */}
-        <button
-          type="button"
-          onClick={() => {
-            console.log(
-              "➡️ Debug fallback: calling handleSubmit(onSubmit) directly for step:",
-              currentStep
-            );
-            handleSubmit(onSubmit)();
+      {/* Provide the RHF context to child components */}
+      <FormProvider {...methods}>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            console.log("➡️ form submit event fired for step:", currentStep);
+            handleSubmit(onSubmit, (errors) => {
+              console.warn("❌ validation failed, errors:", errors);
+            })(e);
           }}
-          style={{ marginLeft: 8 }}
-        ></button>
-      </form>
+        >
+          {currentStep === "postcode" && <PostcodeForm />}
+
+          {currentStep === "personal-details" && (
+            <PersonalDetailsForm
+              register={register}
+              errors={formState.errors}
+              setValue={setValue}
+            />
+          )}
+
+          {currentStep === "address-lookup" && (
+            <AddressLookupForm register={register} errors={formState.errors} />
+          )}
+
+          {currentStep === "final" && (
+            <FinalSubmitForm register={register} errors={formState.errors} />
+          )}
+
+          <Button type="submit">
+            {currentStepIndex < steps.length - 1 ? "Next Step" : "Submit"}
+          </Button>
+
+          {/* Debug fallback button: directly invoke handleSubmit to bypass native form submission */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log(
+                "➡️ Debug fallback: calling handleSubmit(onSubmit) directly for step:",
+                currentStep
+              );
+              handleSubmit(onSubmit)();
+            }}
+            style={{ marginLeft: 8 }}
+          />
+        </form>
+      </FormProvider>
     </FormCard>
   );
 }

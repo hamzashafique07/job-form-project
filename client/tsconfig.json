@@ -10,7 +10,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@job-form/shared": ["../shared/dist"]
+      "@job-form/shared": ["../shared/dist"],
+      "@job-form/shared/*": ["../shared/dist/*"]
     }
   },
   "include": ["src"],
