@@ -2,6 +2,7 @@
 /** @format */
 import TextInput from "../ui/TextInput";
 import React from "react";
+import SignatureCanvas from "../ui/SignatureCanvas";
 
 type Props = {
   register: any;
@@ -144,6 +145,18 @@ export default function PersonalDetailsForm({
           <p className="text-red-600 mt-1">{errors.consent.message}</p>
         )}
       </div>
+
+      {/* Signature */}
+      <SignatureCanvas
+        value={undefined}
+        onChange={(base64) =>
+          setValue("signatureBase64", base64, {
+            shouldValidate: true,
+            shouldDirty: true,
+          })
+        }
+        error={errors.signatureBase64?.message}
+      />
     </>
   );
 }

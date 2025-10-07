@@ -28,6 +28,32 @@ export async function validateStep(req: Request, res: Response) {
     // ✅ validate step data
     schema.parse(data);
 
+    // ===== Patch: transform consent boolean -> object =====
+    let persistedData = { ...data };
+    if (
+      stepId === "personal-details" &&
+      typeof persistedData.consent === "boolean"
+    ) {
+      persistedData.consent = persistedData.consent
+        ? {
+            text: undefined,
+            acceptedAt: new Date(),
+            ip:
+              (req.headers["x-forwarded-for"] as string) ||
+              req.ip ||
+              req.socket?.remoteAddress ||
+              undefined,
+            userAgent: req.get("User-Agent") || undefined,
+          }
+        : {
+            text: undefined,
+            acceptedAt: null,
+            ip: undefined,
+            userAgent: undefined,
+          };
+    }
+    // =====================================================
+
     // Map external stepId to internal Mongo path
     const mappedPath = mapStepId(stepId);
     if (!mappedPath) {
@@ -58,12 +84,17 @@ export async function validateStep(req: Request, res: Response) {
       // update: set the nested path using dot notation
       form = await Form.findByIdAndUpdate(
         formId,
-        { $set: { [`steps.${mappedPath}`]: data, updatedAt: new Date() } },
+        {
+          $set: {
+            [`steps.${mappedPath}`]: persistedData,
+            updatedAt: new Date(),
+          },
+        },
         { new: true }
       );
     } else {
       // create: create nested steps object according to mappedPath
-      const stepsObj = buildNestedObject(mappedPath, data);
+      const stepsObj = buildNestedObject(mappedPath, persistedData);
       form = await Form.create({ steps: stepsObj });
     }
 
