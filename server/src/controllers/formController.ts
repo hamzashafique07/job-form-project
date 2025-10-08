@@ -128,9 +128,30 @@ export async function saveForm(req: Request, res: Response) {
       return res.status(400).json({ error: "Missing data" });
     }
 
+    // If formId is invalid or missing, create a new form
+    const isValidObjectId =
+      typeof formId === "string" && formId.match(/^[0-9a-fA-F]{24}$/);
+
+    const query = isValidObjectId ? { _id: formId } : { _id: undefined };
+
+    // 👉 only update fields under `steps` or `final`, not the whole doc
+    const updatePayload: any = {};
+
+    // If the frontend sends fields that belong to steps, put them there
+    if (data.steps) {
+      Object.entries(data.steps).forEach(([key, val]) => {
+        updatePayload[`steps.${key}`] = val;
+      });
+    }
+
+    // Handle final step data explicitly
+    if (data.final) {
+      updatePayload.final = data.final;
+    }
+
     const form = await Form.findOneAndUpdate(
-      { _id: formId },
-      { $set: { ...data, updatedAt: new Date() } },
+      query,
+      { $set: { ...updatePayload, updatedAt: new Date() } },
       { upsert: true, new: true }
     );
 

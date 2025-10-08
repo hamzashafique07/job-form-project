@@ -17,16 +17,6 @@
     },
     "types": ["node"] // ✅ add this line
   },
-  "include": [
-    "src/app.ts",
-    "src/server.ts",
-    "src/controllers/formController.ts",
-    "src/models/Form.ts",
-    "src/routes/formRoute.ts",
-    "src/routes/healthRoute.ts",
-    "src/utils/errorMap.ts",
-    "src/routes/address.ts",
-    "src/utils/stepIdMapper.ts"
-  ],
+  "include": ["src/**/*"],
   "references": [{ "path": "../shared" }]
 }
