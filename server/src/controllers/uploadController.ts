@@ -40,7 +40,8 @@ export async function uploadSignature(req: Request, res: Response) {
     }
 
     // 3️⃣ Respond to client
-    return res.json({ success: true, fileUrl });
+    // patched - return a clear, named field the client expects
+    return res.json({ success: true, signatureFileUrl: fileUrl });
   } catch (err: any) {
     console.error("uploadSignature error:", err);
     res.status(500).json({ success: false, error: err.message });

@@ -108,5 +108,6 @@ export async function uploadSignatureToDrive(
     requestBody: { role: "reader", type: "anyone" },
   });
 
-  return `https://drive.google.com/uc?id=${fileId}&export=download`;
+  // Return a shareable view URL instead of download link
+  return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
 }

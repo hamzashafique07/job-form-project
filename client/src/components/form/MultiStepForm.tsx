@@ -156,8 +156,42 @@ export default function MultiStepForm() {
         reset(fullFormData); // preserve all filled values
       } else {
         const finalFormId = newFormId;
-        const finalData = fullFormData;
+        const finalData = { ...fullFormData };
 
+        // 🆕 Step 1: Upload signature to Google Drive (if not already uploaded)
+        const maybeSignatureData = finalData as Record<string, any>;
+        if (
+          maybeSignatureData.signatureBase64 &&
+          !maybeSignatureData.signatureFileUrl
+        ) {
+          try {
+            console.log("📤 Uploading signature to Drive...");
+            const uploadRes = await fetch("/api/upload/signature", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                signatureBase64: maybeSignatureData.signatureBase64,
+                formId: finalFormId, // <- ensure server can persist to DB
+              }),
+            });
+            const uploadBody = await uploadRes.json();
+            console.log("← upload/signature response:", uploadBody);
+
+            if (uploadRes.ok && uploadBody.signatureFileUrl) {
+              maybeSignatureData.signatureFileUrl = uploadBody.signatureFileUrl;
+              console.log(
+                "✅ Signature uploaded to Drive:",
+                uploadBody.signatureFileUrl
+              );
+            } else {
+              console.warn("⚠️ Drive upload failed:", uploadBody);
+            }
+          } catch (err) {
+            console.error("✖ Error uploading signature to Drive:", err);
+          }
+        }
+
+        // 🧾 Step 2: Continue with your existing /api/forms/submit call
         console.log(
           "→ calling /api/forms/submit with finalFormId:",
           finalFormId
