@@ -59,9 +59,14 @@ export const consentSchema = z
   .boolean()
   .refine((v: boolean) => v === true, { message: "consent.required" });
 
+// portable: doesn't rely on required_error or default chaining
 export const signatureBase64Schema = z
   .string()
-  .min(1, { message: "signature.required" });
+  .optional()
+  .transform((val) => val ?? "")
+  .refine((val) => typeof val === "string" && val.length > 0, {
+    message: "signature.required",
+  });
 
 export const currentPostcodeSchema = z
   .string()
@@ -101,7 +106,7 @@ export const personalDetailsSchema = z.object({
   email: emailSchema.transform((s: string) => s.toLowerCase()),
   phone: phoneSchema,
   consent: consentSchema,
-  signatureBase64: signatureBase64Schema.optional(), // final submit requires this; optional for partial saves
+  signatureBase64: signatureBase64Schema, // final submit requires this; optional for partial saves
   // currentPostcode: currentPostcodeSchema.optional(), // used in address lookup step
   // currentAddress: addressObjectSchema.optional(),
   // previousAddress: addressObjectSchema.optional(),
