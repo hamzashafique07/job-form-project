@@ -43,3 +43,6 @@ server/src/config/drive-service-account.json
 
 # Google credentials
 server/src/config/oauth-client.json
+
+# TypeScript build info files
+*.tsbuildinfo
