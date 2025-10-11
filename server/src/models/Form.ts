@@ -33,7 +33,7 @@ const ValidationStatusesSchema = new mongoose.Schema(
 
 const FormSchema = new mongoose.Schema(
   {
-    // keep affiliate & meta fields
+    // ✅ affiliate & meta info
     aff_id: String,
     originalAffId: String,
     usedAffId: String,
@@ -68,15 +68,19 @@ const FormSchema = new mongoose.Schema(
       signatureBase64: String,
     },
 
-    // validation / crm
+    // ✅ validation / CRM
     validationStatuses: ValidationStatusesSchema,
-    crmStatus: String,
-    crmResponse: mongoose.Schema.Types.Mixed,
+
+    // 🩵 --- PATCH START: CRM tracking fields ---
+    crmStatus: { type: String, default: null },
+    crmResponse: { type: Object, default: {} },
+    // 🩵 --- PATCH END ---
 
     apiCredentialsUsed: {
       apiId: String,
       apiPasswordKeyRef: String,
     },
+
     meta: {
       ip: String,
       userAgent: String,

@@ -9,6 +9,9 @@ import { formRoute } from "./routes/formRoute";
 import addressRoutes from "./routes/address";
 import uploadRoute from "./routes/uploadRoute";
 
+// 🆕 Add import for default aff check
+import { ensureDefaultAffPresentOrFail } from "./services/affCredentialsService";
+
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -33,9 +36,22 @@ export async function initApp() {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log("✅ MongoDB connected successfully");
+
+    // 🩵 --- PATCH START: ensure DEFAULT_AFF_ID exists ---
+    try {
+      await ensureDefaultAffPresentOrFail();
+      console.log(
+        "✅ DEFAULT_AFF_ID present in aff_credentials collection (or not configured)."
+      );
+    } catch (err) {
+      console.error("❌ Aff credentials check failed:", err);
+      process.exit(1);
+    }
+    // 🩵 --- PATCH END ---
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err);
     process.exit(1);
   }
+
   return app;
 }

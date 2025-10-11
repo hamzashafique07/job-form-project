@@ -4,6 +4,10 @@ import { z } from "zod";
 import { getSchemaForStep } from "@job-form/shared/schemas";
 import Form from "../models/Form";
 import { mapStepId } from "../utils/stepIdMapper";
+import { getOrGenerateAffId } from "../utils/affId";
+import { getCredentialsForAffId } from "../services/affCredentialsService";
+// 🆕 If you have a payload builder, import it
+// import { buildPhonexaPayload } from "../utils/buildPayload";
 
 // POST /api/forms/validate-step
 export async function validateStep(req: Request, res: Response) {
@@ -28,7 +32,7 @@ export async function validateStep(req: Request, res: Response) {
     // ✅ validate step data
     schema.parse(data);
 
-    // ===== Patch: transform consent boolean -> object =====
+    // ===== Transform consent boolean -> object =====
     let persistedData = { ...data };
     if (
       stepId === "personal-details" &&
@@ -54,7 +58,6 @@ export async function validateStep(req: Request, res: Response) {
     }
     // =====================================================
 
-    // Map external stepId to internal Mongo path
     const mappedPath = mapStepId(stepId);
     if (!mappedPath) {
       return res.status(400).json({
@@ -62,7 +65,6 @@ export async function validateStep(req: Request, res: Response) {
       });
     }
 
-    // helper: create nested object for mappedPath "addressLookup.postcode"
     function buildNestedObject(path: string, value: any) {
       const parts = path.split(".");
       const out: any = {};
@@ -81,7 +83,6 @@ export async function validateStep(req: Request, res: Response) {
 
     let form = null;
     if (formId) {
-      // update: set the nested path using dot notation
       form = await Form.findByIdAndUpdate(
         formId,
         {
@@ -93,7 +94,6 @@ export async function validateStep(req: Request, res: Response) {
         { new: true }
       );
     } else {
-      // create: create nested steps object according to mappedPath
       const stepsObj = buildNestedObject(mappedPath, persistedData);
       form = await Form.create({ steps: stepsObj });
     }
@@ -128,23 +128,19 @@ export async function saveForm(req: Request, res: Response) {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    // If formId is invalid or missing, create a new form
     const isValidObjectId =
       typeof formId === "string" && formId.match(/^[0-9a-fA-F]{24}$/);
 
     const query = isValidObjectId ? { _id: formId } : { _id: undefined };
 
-    // 👉 only update fields under `steps` or `final`, not the whole doc
     const updatePayload: any = {};
 
-    // If the frontend sends fields that belong to steps, put them there
     if (data.steps) {
       Object.entries(data.steps).forEach(([key, val]) => {
         updatePayload[`steps.${key}`] = val;
       });
     }
 
-    // Handle final step data explicitly
     if (data.final) {
       updatePayload.final = data.final;
     }
@@ -166,8 +162,7 @@ export async function saveForm(req: Request, res: Response) {
 export async function submitForm(req: Request, res: Response) {
   try {
     const { formId, data } = req.body;
-
-    const schema = getSchemaForStep("submit"); // ✅ use final schema
+    const schema = getSchemaForStep("submit");
     schema.parse(data);
 
     const form = await Form.findOneAndUpdate(
@@ -180,7 +175,39 @@ export async function submitForm(req: Request, res: Response) {
       return res.status(500).json({ error: "Failed to submit form" });
     }
 
-    // TODO: push to CRM or external system
+    // --- 🩵 PATCH: dynamic credentials + payload tracking ---
+    try {
+      const incomingAffId = (data as any)?.aff_id || undefined;
+      const affInfo = getOrGenerateAffId(form, incomingAffId);
+      const credResult = await getCredentialsForAffId(affInfo.affId);
+
+      // Save credential metadata on form
+      form.aff_id = affInfo.affId;
+      form.usedAffId = credResult.usedAffId;
+      form.originalAffId = credResult.originalAffId;
+      form.affIdDefaulted = credResult.affIdDefaulted;
+      form.apiCredentialsUsed = {
+        apiId: credResult.apiId,
+        apiPasswordKeyRef: credResult.apiPasswordKeyRef,
+      };
+      await form.save();
+
+      // If you push to an external system (CRM / Phonexa)
+      // const payload = buildPhonexaPayload(form, req.ip, credResult.usedAffId);
+      // await pushLeadToCRM(payload);
+
+      console.log(
+        "✅ affId + apiCredentialsUsed updated for form:",
+        form._id.toString()
+      );
+    } catch (metaErr) {
+      console.error(
+        "⚠️ Failed to persist aff_id / credentials metadata:",
+        metaErr
+      );
+    }
+    // --- 🩵 END PATCH ---
+
     return res.json({ success: true, form });
   } catch (err) {
     if (err instanceof z.ZodError) {

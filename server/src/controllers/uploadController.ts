@@ -1,5 +1,5 @@
-//server/src/controllers/uploadController.ts
 /** @format */
+// server/src/controllers/uploadController.ts
 import { Request, Response } from "express";
 import { uploadSignatureToDrive } from "../services/googleDriveService";
 import Form from "../models/Form";
@@ -19,7 +19,6 @@ export async function uploadSignature(req: Request, res: Response) {
 
     // 2️⃣ Save inside "final" section of Form document
     if (formId) {
-      // Build query properly depending on type
       const query =
         formId.match(/^[0-9a-fA-F]{24}$/) !== null
           ? { _id: formId }
@@ -39,8 +38,6 @@ export async function uploadSignature(req: Request, res: Response) {
       console.warn(`⚠️ Missing formId, skipping DB update`);
     }
 
-    // 3️⃣ Respond to client
-    // patched - return a clear, named field the client expects
     return res.json({ success: true, signatureFileUrl: fileUrl });
   } catch (err: any) {
     console.error("uploadSignature error:", err);
