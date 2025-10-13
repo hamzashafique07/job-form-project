@@ -13,7 +13,7 @@ export function buildPhonexaPayload(leadDoc, userIp, affId) {
       : leadDoc.meta?.source || "";
 
   return {
-    productId: 329,
+    ProductId: 329,
     price: 0,
     postCode: leadDoc.currentAddress?.postCode || "",
     firstName: leadDoc.firstName || "",

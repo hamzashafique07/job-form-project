@@ -155,8 +155,9 @@ export default function MultiStepForm() {
         setCurrentStepIndex((prev) => prev + 1);
         reset(fullFormData); // preserve all filled values
       } else {
-        const finalFormId = newFormId;
-        const finalData = { ...fullFormData };
+        // 🧩 Always ensure formId is defined from all possible sources
+        const finalFormId = newFormId || formId || body.formId;
+        const finalData = { ...fullFormData, formId: finalFormId };
 
         // 🆕 Step 1: Upload signature to Google Drive (if not already uploaded)
         const maybeSignatureData = finalData as Record<string, any>;

@@ -27,7 +27,10 @@ export const getApiCredentials = (affId) => {
       apiId: "D1976A979D6B464C85C96161EDF19D62",
       apiPassword: "11e9ef972",
     },
-    673: { apiId: "A31EDE365AA741D1B55D9777F38529F5", apiPassword: "4b6a529" },
+    673: {
+      apiId: "A31EDE365AA741D1B55D9777F38529F5",
+      apiPassword: "4b6a529",
+    },
     default: {
       apiId: "5C3124FB2F884598BE1B45A9E8DCBE2A",
       apiPassword: "6379aec09",
