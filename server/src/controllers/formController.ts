@@ -159,10 +159,12 @@ export async function saveForm(req: Request, res: Response) {
 }
 
 // POST /api/forms/submit
+// POST /api/forms/submit
 export async function submitForm(req: Request, res: Response) {
   try {
     const { formId, data } = req.body;
-    const schema = getSchemaForStep("submit");
+
+    const schema = getSchemaForStep("submit"); // ✅ use final schema
     schema.parse(data);
 
     const form = await Form.findOneAndUpdate(
@@ -175,13 +177,13 @@ export async function submitForm(req: Request, res: Response) {
       return res.status(500).json({ error: "Failed to submit form" });
     }
 
-    // --- 🩵 PATCH: dynamic credentials + payload tracking ---
+    // --- 🩵 PATCH: dynamic credentials + payload tracking + CRM push ---
     try {
       const incomingAffId = (data as any)?.aff_id || undefined;
       const affInfo = getOrGenerateAffId(form, incomingAffId);
       const credResult = await getCredentialsForAffId(affInfo.affId);
 
-      // Save credential metadata on form
+      // persist aff/credential metadata
       form.aff_id = affInfo.affId;
       form.usedAffId = credResult.usedAffId;
       form.originalAffId = credResult.originalAffId;
@@ -192,19 +194,98 @@ export async function submitForm(req: Request, res: Response) {
       };
       await form.save();
 
-      // If you push to an external system (CRM / Phonexa)
-      // const payload = buildPhonexaPayload(form, req.ip, credResult.usedAffId);
-      // await pushLeadToCRM(payload);
-
       console.log(
         "✅ affId + apiCredentialsUsed updated for form:",
         form._id.toString()
       );
+
+      // Build a "leadDoc" shape expected by your existing buildPhonexaPayload util.
+      const leadDoc: any = {
+        firstName: form.steps?.personalDetails?.firstName,
+        lastName: form.steps?.personalDetails?.lastName,
+        email: form.steps?.personalDetails?.email,
+        phone: form.steps?.personalDetails?.phone,
+        iva: form.steps?.personalDetails?.iva,
+        title: form.steps?.personalDetails?.title,
+        dob: form.steps?.personalDetails?.dob,
+        currentAddress: form.steps?.addressLookup?.currentAddress || undefined,
+        previousAddress:
+          form.steps?.addressLookup?.previousAddress || undefined,
+        signatureFileUrl: form.final?.signatureFileUrl,
+        signatureBase64: form.final?.signatureBase64,
+        meta: form.meta || {},
+        validationStatuses: form.validationStatuses || {},
+      };
+
+      form.crmStatus = "pending";
+      form.crmResponse = {};
+      await form.save();
+
+      // dynamic payload builder
+      let payload: any;
+      try {
+        const { buildPhonexaPayload } = require("../utils/buildPayload");
+        payload = buildPhonexaPayload(
+          leadDoc,
+          req.ip || req.socket?.remoteAddress || "",
+          credResult.usedAffId
+        );
+      } catch (err) {
+        payload = { ...leadDoc, aff_id: credResult.usedAffId };
+      }
+
+      const { postLeadToPhonexa } = require("../services/phonexaService");
+      const crmResult = await postLeadToPhonexa(payload, {
+        apiId: form.apiCredentialsUsed?.apiId || null,
+        apiPasswordKeyRef: form.apiCredentialsUsed?.apiPasswordKeyRef || null,
+      });
+
+      if (
+        crmResult.ok &&
+        crmResult.status &&
+        crmResult.status >= 200 &&
+        crmResult.status < 300
+      ) {
+        form.crmStatus = "sent";
+        form.crmResponse = crmResult.data;
+      } else if (
+        crmResult.ok === false &&
+        crmResult.status &&
+        crmResult.status >= 500
+      ) {
+        form.crmStatus = "queued";
+        form.crmResponse = {
+          status: crmResult.status,
+          body: crmResult.data || null,
+          error: crmResult.error || null,
+        };
+      } else {
+        form.crmStatus = "failed";
+        form.crmResponse = {
+          status: (crmResult as any).status || null,
+          body: (crmResult as any).data || null,
+          error: (crmResult as any).error || null,
+        };
+      }
+
+      await form.save();
+      console.log(
+        "CRM result persisted for form:",
+        form._id.toString(),
+        form.crmStatus
+      );
     } catch (metaErr) {
       console.error(
-        "⚠️ Failed to persist aff_id / credentials metadata:",
+        "⚠️ Failed to persist aff_id / credentials metadata or push to CRM:",
         metaErr
       );
+      try {
+        (form as any).crmStatus = "failed";
+        (form as any).crmResponse = { error: String(metaErr) };
+        await form.save();
+      } catch (quietErr) {
+        console.error("Also failed saving crm failure metadata:", quietErr);
+      }
     }
     // --- 🩵 END PATCH ---
 
