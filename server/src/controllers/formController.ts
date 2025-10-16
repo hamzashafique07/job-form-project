@@ -6,6 +6,7 @@ import Form from "../models/Form";
 import { mapStepId } from "../utils/stepIdMapper";
 import { getOrGenerateAffId } from "../utils/affId";
 import { getCredentialsForAffId } from "../services/affCredentialsService";
+import { mapToPhonexaPayload } from "../lib/phonexaMapper";
 // 🆕 If you have a payload builder, import it
 // import { buildPhonexaPayload } from "../utils/buildPayload";
 
@@ -221,18 +222,60 @@ export async function submitForm(req: Request, res: Response) {
       form.crmResponse = {};
       await form.save();
 
-      // dynamic payload builder
-      let payload: any;
-      try {
-        const { buildPhonexaPayload } = require("../utils/buildPayload");
-        payload = buildPhonexaPayload(
-          leadDoc,
-          req.ip || req.socket?.remoteAddress || "",
-          credResult.usedAffId
-        );
-      } catch (err) {
-        payload = { ...leadDoc, aff_id: credResult.usedAffId };
-      }
+      // build "meta" with form-level data and req context (type-safe by casting unknown fields to any)
+      const fm: any = form; // allow dynamic fields without TS errors
+
+      const meta: Record<string, any> = {
+        aff_id: credResult.usedAffId,
+        apiId: form.apiCredentialsUsed?.apiId ?? undefined,
+        // pass the Drive URL if available
+        signatureFileUrl: fm?.final?.signatureFileUrl ?? undefined,
+        // pass timestamps & request context
+        createdAt: fm?.createdAt,
+        updatedAt: fm?.updatedAt,
+        landingTime: fm?.createdAt,
+        submissionTime: fm?.updatedAt,
+        signatureTime:
+          fm?.final?.signatureTime ??
+          fm?.steps?.personalDetails?.consent?.acceptedAt ??
+          undefined,
+        userIp:
+          req.ip ||
+          req.socket?.remoteAddress ||
+          fm?.steps?.personalDetails?.consent?.ip ||
+          undefined,
+        userAgent:
+          req.get("User-Agent") ||
+          fm?.steps?.personalDetails?.consent?.userAgent ||
+          undefined,
+        buyer: "NAASS",
+        optinurl: process.env.OPTIN_URL ?? fm?.meta?.optinurl ?? undefined,
+        stlLeadId: fm?.stlLeadId ?? undefined,
+        // Keep any other dynamic fields grouped on meta.extraSpare if needed
+        extraSpare: fm?.meta?.extraSpare ?? undefined,
+      };
+
+      // now call the improved mapper with both leadDoc and meta
+      const payload = mapToPhonexaPayload(
+        {
+          // pass known personal fields; mapper is defensive so missing values are fine
+          title: leadDoc.title,
+          firstName: leadDoc.firstName,
+          lastName: leadDoc.lastName,
+          dob: leadDoc.dob,
+          email: leadDoc.email,
+          phone: leadDoc.phone,
+          iva: leadDoc.iva,
+          currentAddress: leadDoc.currentAddress,
+          previousAddress: leadDoc.previousAddress,
+          signatureBase64: leadDoc.signatureBase64,
+          // some payloads expected explicit keys too
+          signatureFileUrl: form.final?.signatureFileUrl,
+        },
+        meta
+      );
+
+      console.log("✅ Mapped Phonexa payload:", payload);
 
       const { postLeadToPhonexa } = require("../services/phonexaService");
       const crmResult = await postLeadToPhonexa(payload, {
