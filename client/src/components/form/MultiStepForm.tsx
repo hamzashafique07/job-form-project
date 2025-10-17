@@ -157,7 +157,11 @@ export default function MultiStepForm() {
       } else {
         // 🧩 Always ensure formId is defined from all possible sources
         const finalFormId = newFormId || formId || body.formId;
-        const finalData = { ...fullFormData, formId: finalFormId };
+        const finalData = {
+          ...fullFormData,
+          formId: finalFormId,
+          optinurl: window.location.href, // ✅ capture opt-in URL
+        };
 
         // 🆕 Step 1: Upload signature to Google Drive (if not already uploaded)
         const maybeSignatureData = finalData as Record<string, any>;

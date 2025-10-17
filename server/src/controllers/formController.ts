@@ -225,6 +225,14 @@ export async function submitForm(req: Request, res: Response) {
       // build "meta" with form-level data and req context (type-safe by casting unknown fields to any)
       const fm: any = form; // allow dynamic fields without TS errors
 
+      // 🩵 ensure optinurl always populated
+      if (!data.optinurl) {
+        data.optinurl =
+          process.env.OPTIN_URL ||
+          req.get("origin") ||
+          "https://claim3000.co.uk";
+      }
+
       const meta: Record<string, any> = {
         aff_id: credResult.usedAffId,
         apiId: form.apiCredentialsUsed?.apiId ?? undefined,
@@ -248,8 +256,12 @@ export async function submitForm(req: Request, res: Response) {
           req.get("User-Agent") ||
           fm?.steps?.personalDetails?.consent?.userAgent ||
           undefined,
-        buyer: "NAASS",
-        optinurl: process.env.OPTIN_URL ?? fm?.meta?.optinurl ?? undefined,
+        buyer: "CLAIM3000",
+        optinurl:
+          data.optinurl ??
+          process.env.OPTIN_URL ??
+          fm?.meta?.optinurl ??
+          undefined,
         stlLeadId: fm?.stlLeadId ?? undefined,
         // Keep any other dynamic fields grouped on meta.extraSpare if needed
         extraSpare: fm?.meta?.extraSpare ?? undefined,
