@@ -12,6 +12,8 @@ import PostcodeForm from "./Postcodeform";
 import PersonalDetailsForm from "./PersonalDetailsForm";
 import AddressLookupForm from "./AddressLookupForm";
 import FinalSubmitForm from "./FinalSubmitForm";
+import { useEffect } from "react";
+import { mapErrorKeyToMessage } from "../../utils/errorMapClient";
 
 // Step order
 const steps = [
@@ -46,6 +48,62 @@ export default function MultiStepForm() {
     setValue,
     getValues,
   } = methods;
+
+  // ✅ Move this ABOVE useEffect
+  function safeSerializeErrors(obj: any) {
+    if (!obj || typeof obj !== "object") return obj;
+    const clone: any = Array.isArray(obj) ? [] : {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === "ref") continue; // 🚫 skip circular DOM refs
+      if (typeof value === "object") clone[key] = safeSerializeErrors(value);
+      else clone[key] = value;
+    }
+    return clone;
+  }
+  // 🧩 Enhanced client-side error mapper (safe + persistent)
+  useEffect(() => {
+    if (!formState.errors) return;
+
+    // 🧹 Deep clone but strip circular refs (like HTMLInputElement)
+    function safeSerializeErrors(obj: any) {
+      if (!obj || typeof obj !== "object") return obj;
+      const clone: any = Array.isArray(obj) ? [] : {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (key === "ref") continue; // 🚫 skip circular DOM refs
+        if (typeof value === "object") clone[key] = safeSerializeErrors(value);
+        else clone[key] = value;
+      }
+      return clone;
+    }
+
+    const safeErrors = safeSerializeErrors(formState.errors);
+    const serialized = JSON.stringify(safeErrors);
+
+    function traverseAndMap(obj: any, prefix = "") {
+      if (!obj || typeof obj !== "object") return;
+      for (const [key, value] of Object.entries(obj)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (value && typeof value === "object" && "message" in value) {
+          const msg = (value as any).message;
+          if (typeof msg === "string") {
+            const friendly = mapErrorKeyToMessage(msg);
+            if (friendly && friendly !== msg) {
+              setError(path as any, {
+                type: (value as any).type || "validate",
+                message: friendly,
+              });
+            }
+          }
+        } else if (typeof value === "object") {
+          traverseAndMap(value, path);
+        }
+      }
+    }
+
+    traverseAndMap(formState.errors);
+
+    // 🧠 Depend on the safe serialized version
+  }, [setError, JSON.stringify(safeSerializeErrors(formState.errors))]);
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     console.log(

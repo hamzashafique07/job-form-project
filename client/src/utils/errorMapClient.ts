@@ -1,8 +1,5 @@
-//server/src/utils/errorMap.ts
-/** @format */
-// central error message mapping
-
-export function mapErrorKeyToMessage(key: string) {
+// client/src/utils/errorMapClient.ts
+export function mapErrorKeyToMessage(key: string): string | undefined {
   const map: Record<string, string> = {
     "iva.required": "Please tell us whether you've had an IVA or bankruptcy.",
     "title.required": "Please choose a title (Mr / Mrs / Miss / Ms).",
@@ -51,5 +48,6 @@ export function mapErrorKeyToMessage(key: string) {
     "field.tooLong": "Too long. Please shorten this field.",
     "field.invalid": "Invalid value. Please check and try again.",
   };
+
   return map[key];
 }

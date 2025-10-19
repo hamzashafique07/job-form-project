@@ -7,6 +7,8 @@ import { mapStepId } from "../utils/stepIdMapper";
 import { getOrGenerateAffId } from "../utils/affId";
 import { getCredentialsForAffId } from "../services/affCredentialsService";
 import { mapToPhonexaPayload } from "../lib/phonexaMapper";
+import { mapErrorKeyToMessage } from "../utils/errorMap";
+
 // 🆕 If you have a payload builder, import it
 // import { buildPhonexaPayload } from "../utils/buildPayload";
 
@@ -106,12 +108,16 @@ export async function validateStep(req: Request, res: Response) {
     return res.json({ valid: true, formId: form._id.toString() });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        errors: err.issues.map((e) => ({
+      console.log("🪵 RAW ZOD ERRORS:", JSON.stringify(err.issues, null, 2));
+      const mappedErrors = err.issues.map((e) => {
+        const key = e.message;
+        const friendly = mapErrorKeyToMessage(key) || key;
+        return {
           field: e.path.join(".") || "field",
-          message: e.message,
-        })),
+          message: friendly,
+        };
       });
+      return res.status(400).json({ errors: mappedErrors });
     }
 
     console.error("❌ validateStep error:", err);
@@ -347,13 +353,18 @@ export async function submitForm(req: Request, res: Response) {
     return res.json({ success: true, form });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        errors: err.issues.map((e) => ({
-          field: e.path.join("."),
-          message: e.message,
-        })),
+      console.log("🪵 RAW ZOD ERRORS:", JSON.stringify(err.issues, null, 2));
+      const mappedErrors = err.issues.map((e) => {
+        const key = e.message;
+        const friendly = mapErrorKeyToMessage(key) || key;
+        return {
+          field: e.path.join(".") || "field",
+          message: friendly,
+        };
       });
+      return res.status(400).json({ errors: mappedErrors });
     }
+
     console.error("❌ submitForm error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
