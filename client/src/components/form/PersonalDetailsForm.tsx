@@ -3,6 +3,7 @@
 import TextInput from "../ui/TextInput";
 import React from "react";
 import SignatureCanvas from "../ui/SignatureCanvas";
+import { useFormContext } from "react-hook-form";
 
 type Props = {
   register: any;
@@ -24,6 +25,9 @@ export default function PersonalDetailsForm({
   errors,
   setValue,
 }: Props) {
+  // ✅ Must be INSIDE the component
+  const { watch, trigger } = useFormContext();
+
   const maxDob = (() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 18);
@@ -120,18 +124,32 @@ export default function PersonalDetailsForm({
         error={errors.email?.message}
       />
 
-      {/* Phone */}
+      {/* ✅ Phone */}
       <TextInput
         label="Phone"
         type="tel"
         placeholder="07123 456789"
         inputMode="numeric"
         maxLength={11}
-        {...register("phone")}
-        onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const clean = e.currentTarget.value.replace(/\D/g, "").slice(0, 11);
-          setValue("phone", clean, { shouldValidate: true, shouldDirty: true });
+        value={watch("phone") || ""}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          const raw = e.target.value ?? "";
+          const clean = raw.replace(/\D/g, "").slice(0, 11);
+
+          let shouldValidate = false;
+
+          if (clean.length === 0) {
+            shouldValidate = false;
+          } else if (clean.length === 1) {
+            shouldValidate = clean[0] !== "0";
+          } else if (clean.length >= 2) {
+            const prefix = clean.slice(0, 2);
+            shouldValidate = prefix !== "07";
+          }
+
+          setValue("phone", clean, { shouldValidate, shouldDirty: true });
         }}
+        onBlur={() => trigger("phone")}
         error={errors.phone?.message}
       />
 
