@@ -97,23 +97,32 @@ export default function PostcodeForm() {
     else clearErrors("currentPostcode");
   };
 
-  // Debounced lookups: start finding as the user types
+  // ✅ Add this regex constant once near top of component (just before first useEffect)
+  const UK_POSTCODE_REGEX = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+
+  // --- Current Postcode watcher ---
   useEffect(() => {
-    // clear old timer
     if (currentTimer.current) window.clearTimeout(currentTimer.current);
-    // if empty, clear addresses & hide list
-    if (!currentPostcode || currentPostcode.trim() === "") {
+
+    const trimmed = currentPostcode?.trim().toUpperCase() || "";
+
+    if (!trimmed) {
       setCurrentAddresses([]);
       setShowCurrentSuggestions(false);
       return;
     }
 
-    // small UX: show suggestions area while we search
+    // Show suggestion box as user types
     setShowCurrentSuggestions(true);
 
-    // debounce 500ms
     currentTimer.current = window.setTimeout(() => {
-      lookupAddress(currentPostcode, false);
+      // ✅ Lookup only when postcode passes regex
+      if (UK_POSTCODE_REGEX.test(trimmed)) {
+        lookupAddress(trimmed, false);
+      } else {
+        // Optional: clear invalid partial suggestions
+        setCurrentAddresses([]);
+      }
     }, 500);
 
     return () => {
@@ -122,9 +131,13 @@ export default function PostcodeForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPostcode]);
 
+  // --- Previous Postcode watcher ---
   useEffect(() => {
     if (previousTimer.current) window.clearTimeout(previousTimer.current);
-    if (!previousPostcode || previousPostcode.trim() === "") {
+
+    const trimmed = previousPostcode?.trim().toUpperCase() || "";
+
+    if (!trimmed) {
       setPreviousAddresses([]);
       setShowPreviousSuggestions(false);
       return;
@@ -133,7 +146,12 @@ export default function PostcodeForm() {
     setShowPreviousSuggestions(true);
 
     previousTimer.current = window.setTimeout(() => {
-      lookupAddress(previousPostcode, true);
+      // ✅ Lookup only when postcode passes regex
+      if (UK_POSTCODE_REGEX.test(trimmed)) {
+        lookupAddress(trimmed, true);
+      } else {
+        setPreviousAddresses([]);
+      }
     }, 500);
 
     return () => {
@@ -342,7 +360,7 @@ export default function PostcodeForm() {
               </button>
 
               <div className="text-sm text-gray-600 self-center">
-                Or fill the postcode to continue
+                Or fill the previous postcode to continue
               </div>
             </div>
           </div>
