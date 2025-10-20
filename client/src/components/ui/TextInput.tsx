@@ -7,7 +7,7 @@ type Props = React.InputHTMLAttributes<HTMLInputElement> & {
   error?: FieldError | string; // ✅ allow both
 };
 
-export default function TextInput({ label, error, ...rest }: Props) {
+export default function TextInput({ label, error, className, ...rest }: Props) {
   // Normalize message
   const message = typeof error === "string" ? error : error?.message;
 
@@ -22,7 +22,7 @@ export default function TextInput({ label, error, ...rest }: Props) {
         {...rest}
         className={`w-full p-2 border rounded focus:outline-none focus:ring ${
           message ? "border-red-600 ring-red-100" : "border-gray-300"
-        }`}
+        } ${className || ""}`}
       />
       {message && (
         <p className="text-sm text-red-600 mt-1" role="alert">

@@ -329,9 +329,11 @@ export default function MultiStepForm() {
             <FinalSubmitForm register={register} errors={formState.errors} />
           )}
 
-          <Button type="submit">
-            {currentStepIndex < steps.length - 1 ? "Next Step" : "Submit"}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit">
+              {currentStepIndex < steps.length - 1 ? "Next Step" : "Submit"}
+            </Button>
+          </div>
 
           {/* Debug fallback button: directly invoke handleSubmit to bypass native form submission */}
           <button
