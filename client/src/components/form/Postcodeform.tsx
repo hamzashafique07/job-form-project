@@ -263,7 +263,7 @@ export default function PostcodeForm() {
 
       {/* Display selected current address if present */}
       {watch("currentAddress.label") && (
-        <div className="border rounded p-3 bg-gray-50">
+        <div className="border rounded p-3 bg-green-200">
           <h4 className="font-semibold">Selected current address</h4>
           <p className="text-sm">{watch("currentAddress.label")}</p>
         </div>
@@ -333,7 +333,7 @@ export default function PostcodeForm() {
 
             {/* display selected previous address if present */}
             {watch("previousAddress.label") && (
-              <div className="border rounded p-3 bg-gray-50">
+              <div className="border rounded p-3 bg-green-200">
                 <h4 className="font-semibold">Selected previous address</h4>
                 <p className="text-sm">{watch("previousAddress.label")}</p>
               </div>

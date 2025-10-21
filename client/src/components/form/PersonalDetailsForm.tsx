@@ -149,7 +149,13 @@ export default function PersonalDetailsForm({
 
           setValue("phone", clean, { shouldValidate, shouldDirty: true });
         }}
-        onBlur={() => trigger("phone")}
+        // ✅ PATCH HERE
+        onBlur={() => {
+          const phoneValue = watch("phone");
+          // Always ensure a string, never undefined
+          setValue("phone", phoneValue ?? "", { shouldValidate: true });
+          trigger("phone");
+        }}
         error={errors.phone?.message}
       />
 
