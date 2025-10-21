@@ -32,35 +32,41 @@ export const lastNameSchema = z
   .regex(/^[A-Za-z ]+$/, { message: "lastName.invalidChars" })
   .max(100, { message: "field.tooLong" });
 
-export const dobSchema = z
-  .string()
-  .min(1, { message: "dob.required" })
-  .refine(
-    (val: string) => {
-      const d = new Date(val);
-      return !isNaN(d.getTime());
-    },
-    { message: "dob.invalid" }
-  )
-  .refine(
-    (val: string) => {
-      const d = new Date(val);
-      const minDob = new Date();
-      minDob.setFullYear(minDob.getFullYear() - 18);
-      return d <= minDob;
-    },
-    { message: "dob.underage" }
-  );
+export const dobSchema = z.preprocess(
+  (val) => (val == null ? "" : val), // convert undefined/null → ""
+  z
+    .string()
+    .min(1, { message: "dob.required" })
+    .refine(
+      (val: string) => {
+        const d = new Date(val);
+        return !isNaN(d.getTime());
+      },
+      { message: "dob.invalid" }
+    )
+    .refine(
+      (val: string) => {
+        const d = new Date(val);
+        const minDob = new Date();
+        minDob.setFullYear(minDob.getFullYear() - 18);
+        return d <= minDob;
+      },
+      { message: "dob.underage" }
+    )
+);
 
 export const emailSchema = z
   .string()
   .min(1, { message: "email.required" })
   .email({ message: "email.invalidFormat" });
 
-export const phoneSchema = z
-  .string()
-  .min(1, { message: "phone.required" })
-  .regex(/^07\d{9}$/, { message: "phone.format" });
+export const phoneSchema = z.preprocess(
+  (val) => (val == null ? "" : val), // convert undefined/null → ""
+  z
+    .string()
+    .min(1, { message: "phone.required" })
+    .regex(/^07\d{9}$/, { message: "phone.format" })
+);
 
 export const consentSchema = z
   .boolean()

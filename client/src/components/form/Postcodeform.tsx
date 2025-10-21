@@ -63,12 +63,51 @@ export default function PostcodeForm() {
       if (!res.ok) throw new Error(data?.message || "Lookup failed");
 
       const addresses: Address[] = data.addresses || [];
-      if (isPrevious) setPreviousAddresses(addresses);
-      else setCurrentAddresses(addresses);
+
+      if (addresses.length === 0) {
+        // ❌ No addresses found — show clear error message
+        if (isPrevious) {
+          setError("previousPostcode", {
+            type: "manual",
+            message: "currentPostcode.lookupNoResults", // consistent with your error map
+          });
+          setPreviousAddresses([]);
+        } else {
+          setError("currentPostcode", {
+            type: "manual",
+            message: "currentPostcode.lookupNoResults", // key already exists in errorMapClient
+          });
+          setCurrentAddresses([]);
+        }
+      } else {
+        // ✅ Addresses found — clear previous errors
+        if (isPrevious) {
+          clearErrors("previousPostcode");
+          setPreviousAddresses(addresses);
+        } else {
+          clearErrors("currentPostcode");
+          setCurrentAddresses(addresses);
+        }
+      }
     } catch (err) {
       console.error("lookupAddress error:", err);
-      if (isPrevious) setPreviousAddresses([]);
-      else setCurrentAddresses([]);
+
+      const friendlyMessage =
+        "Unable to fetch address. Please check the postcode enter valid correct postcode or try again later.";
+
+      if (isPrevious) {
+        setError("previousPostcode", {
+          type: "manual",
+          message: friendlyMessage,
+        });
+        setPreviousAddresses([]);
+      } else {
+        setError("currentPostcode", {
+          type: "manual",
+          message: friendlyMessage,
+        });
+        setCurrentAddresses([]);
+      }
     } finally {
       if (isPrevious) setLoadingPrevious(false);
       else setLoadingCurrent(false);

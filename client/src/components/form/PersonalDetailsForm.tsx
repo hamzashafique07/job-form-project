@@ -4,6 +4,9 @@ import TextInput from "../ui/TextInput";
 import React from "react";
 import SignatureCanvas from "../ui/SignatureCanvas";
 import { useFormContext } from "react-hook-form";
+import DatePicker from "react-datepicker";
+import { useState } from "react";
+import { format } from "date-fns";
 
 type Props = {
   register: any;
@@ -27,6 +30,7 @@ export default function PersonalDetailsForm({
 }: Props) {
   // ✅ Must be INSIDE the component
   const { watch, trigger } = useFormContext();
+  const [dob, setDob] = useState<Date | null>(null);
 
   const maxDob = (() => {
     const d = new Date();
@@ -131,13 +135,34 @@ export default function PersonalDetailsForm({
       />
 
       {/* DOB */}
-      <TextInput
-        label="Date of birth"
-        type="date"
-        max={maxDob}
-        {...register("dob")}
-        error={errors.dob?.message}
-      />
+      {/* DOB - React DatePicker, but compatible with your old string-based logic */}
+      <div className="mb-4">
+        <label className="block font-medium mb-1">Date of birth</label>
+        <DatePicker
+          selected={
+            watch("dob") ? new Date(watch("dob")) : null // ensure proper Date value
+          }
+          onChange={(date: Date | null) => {
+            // Always send a string (not undefined!)
+            const formatted = date ? format(date, "yyyy-MM-dd") : "";
+            setValue("dob", formatted, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+            trigger("dob"); // re-run validation instantly
+          }}
+          dateFormat="dd/MM/yyyy"
+          placeholderText="Click to select your date of birth"
+          maxDate={new Date(maxDob)}
+          showMonthDropdown
+          showYearDropdown
+          dropdownMode="select"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+        {errors.dob && (
+          <p className="text-red-600 mt-1">{errors.dob.message}</p>
+        )}
+      </div>
 
       {/* Email */}
       <TextInput

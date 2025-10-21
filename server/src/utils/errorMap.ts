@@ -39,7 +39,7 @@ export function mapErrorKeyToMessage(key: string) {
     "currentPostcode.format":
       "Postcode must be digits only and 5–7 characters.",
     "currentPostcode.lookupNoResults":
-      "No addresses found for that postcode. Enter your address manually.",
+      "No addresses found for that postcode. Please enter correct valid postcode.",
     "currentPostcode.lookupFailed": "Address lookup failed. Please try again.",
     "currentAddress.manualRequired": "Please enter your address.",
     "previousPostcode.format":

@@ -4,6 +4,7 @@
 /** @format */
 
 import MultiStepForm from "./components/form/MultiStepForm";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function App() {
   return (
@@ -19,4 +20,3 @@ export default function App() {
     </div>
   );
 }
-

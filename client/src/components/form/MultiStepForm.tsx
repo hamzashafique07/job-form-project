@@ -33,7 +33,7 @@ export default function MultiStepForm() {
   console.log("🔍 currentStep:", currentStep, "using schema:", schema);
 
   // Use `methods` so we can pass the whole form context via FormProvider
-  const methods = useForm<FormData>({
+  const methods = useForm<any>({
     resolver: schema ? zodResolver(schema) : undefined,
     defaultValues: {},
   });
