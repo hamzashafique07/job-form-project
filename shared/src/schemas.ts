@@ -25,6 +25,13 @@ export const nameSchema = z
   .regex(/^[A-Za-z ]+$/, { message: "firstName.invalidChars" })
   .max(100, { message: "field.tooLong" });
 
+export const lastNameSchema = z
+  .string()
+  .min(1, { message: "field.required" })
+  .min(2, { message: "lastName.minLength" })
+  .regex(/^[A-Za-z ]+$/, { message: "lastName.invalidChars" })
+  .max(100, { message: "field.tooLong" });
+
 export const dobSchema = z
   .string()
   .min(1, { message: "dob.required" })
@@ -101,7 +108,7 @@ export const personalDetailsSchema = z.object({
   iva: ivaSchema,
   title: titleSchema,
   firstName: nameSchema.transform((s: string) => s.trim()),
-  lastName: nameSchema.transform((s: string) => s.trim()),
+  lastName: lastNameSchema.transform((s: string) => s.trim()),
   dob: dobSchema,
   email: emailSchema.transform((s: string) => s.toLowerCase()),
   phone: phoneSchema,

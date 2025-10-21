@@ -77,12 +77,27 @@ export default function PersonalDetailsForm({
         label="First name"
         placeholder="Enter first name"
         {...register("firstName")}
-        onBlur={(e) =>
-          setValue("firstName", toTitleCase(e.target.value.trim()), {
+        value={watch("firstName") || ""}
+        onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+          const clean = e.target.value.replace(/[^A-Za-z\s]/g, "");
+          setValue("firstName", clean, {
+            shouldValidate: false,
+            shouldDirty: true,
+          });
+
+          // ✅ Instantly clear error if name length ≥ 2
+          if (clean.trim().length >= 2 && errors.firstName) {
+            await trigger("firstName");
+          }
+        }}
+        onBlur={async (e) => {
+          const clean = toTitleCase(e.target.value.trim());
+          setValue("firstName", clean, {
             shouldValidate: true,
             shouldDirty: true,
-          })
-        }
+          });
+          await trigger("firstName");
+        }}
         error={errors.firstName?.message}
       />
 
@@ -91,12 +106,27 @@ export default function PersonalDetailsForm({
         label="Last name"
         placeholder="Enter last name"
         {...register("lastName")}
-        onBlur={(e) =>
-          setValue("lastName", toTitleCase(e.target.value.trim()), {
+        value={watch("lastName") || ""}
+        onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+          const clean = e.target.value.replace(/[^A-Za-z\s]/g, "");
+          setValue("lastName", clean, {
+            shouldValidate: false,
+            shouldDirty: true,
+          });
+
+          // ✅ Instantly clear error if name length ≥ 2
+          if (clean.trim().length >= 2 && errors.lastName) {
+            await trigger("lastName");
+          }
+        }}
+        onBlur={async (e) => {
+          const clean = toTitleCase(e.target.value.trim());
+          setValue("lastName", clean, {
             shouldValidate: true,
             shouldDirty: true,
-          })
-        }
+          });
+          await trigger("lastName");
+        }}
         error={errors.lastName?.message}
       />
 
@@ -115,12 +145,26 @@ export default function PersonalDetailsForm({
         type="email"
         placeholder="example@domain.com"
         {...register("email")}
-        onBlur={(e) =>
-          setValue("email", e.target.value.trim().toLowerCase(), {
-            shouldValidate: true,
+        value={watch("email") || ""}
+        onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+          const clean = e.target.value.trim().toLowerCase();
+          setValue("email", clean, {
+            shouldValidate: false,
             shouldDirty: true,
-          })
-        }
+          });
+
+          // ✅ If user types a valid email format, instantly clear error
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (emailRegex.test(clean)) {
+            await trigger("email"); // revalidate to clear any existing error
+          }
+        }}
+        onBlur={async (e) => {
+          const clean = e.target.value.trim().toLowerCase();
+          // ✅ Validate when user finishes typing (on blur)
+          setValue("email", clean, { shouldValidate: true, shouldDirty: true });
+          await trigger("email");
+        }}
         error={errors.email?.message}
       />
 
@@ -132,27 +176,36 @@ export default function PersonalDetailsForm({
         inputMode="numeric"
         maxLength={11}
         value={watch("phone") || ""}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
           const raw = e.target.value ?? "";
           const clean = raw.replace(/\D/g, "").slice(0, 11);
 
+          // Default: no validation yet
           let shouldValidate = false;
 
+          // Step-by-step check:
           if (clean.length === 0) {
             shouldValidate = false;
           } else if (clean.length === 1) {
-            shouldValidate = clean[0] !== "0";
+            shouldValidate = clean[0] !== "0"; // only show if first isn't 0
           } else if (clean.length >= 2) {
             const prefix = clean.slice(0, 2);
-            shouldValidate = prefix !== "07";
+            shouldValidate = prefix !== "07"; // only show if first two not "07"
           }
 
+          // ✅ Always update the field
           setValue("phone", clean, { shouldValidate, shouldDirty: true });
+
+          // ✅ LIVE validation: when 11 digits & starts with 07, clear error instantly
+          if (clean.length === 11 && clean.startsWith("07")) {
+            await trigger("phone");
+          } else if (errors.phone) {
+            // Force revalidate progressively if error exists
+            await trigger("phone");
+          }
         }}
-        // ✅ PATCH HERE
         onBlur={() => {
           const phoneValue = watch("phone");
-          // Always ensure a string, never undefined
           setValue("phone", phoneValue ?? "", { shouldValidate: true });
           trigger("phone");
         }}
