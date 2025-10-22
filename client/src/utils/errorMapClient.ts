@@ -43,6 +43,8 @@ export function mapErrorKeyToMessage(key: string): string | undefined {
     "currentAddress.manualRequired": "Please enter your address.",
     "previousPostcode.format":
       "Postcode must be digits only and 5–7 characters.",
+    "previousPostcode.selectAddressRequired":
+      "Please select address for previous postcode to proceed",
     "previousAddress.manualRequired":
       "Please enter the previous address or remove the previous address field.",
     "address.field.required": "Please complete the highlighted address fields.",

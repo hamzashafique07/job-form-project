@@ -310,22 +310,40 @@ export default function MultiStepForm() {
             if (currentStep === "postcode") {
               const currentAddress = getValues("currentAddress");
               const postcode = getValues("currentPostcode");
+              const previousAddress = getValues("previousAddress");
+              const previousPostcode = getValues("previousPostcode");
+              const showPrevAddress = !!getValues("showPrevAddressFlag"); // we’ll set this below
 
-              // Check if postcode is entered but no address selected
+              // ✅ Enforce current postcode rules (same as before)
               if (postcode && !currentAddress?.label) {
-                // Prevent any async validation or reset from clearing our manual error
                 e.preventDefault();
                 e.stopPropagation();
-
                 setError("currentPostcode" as any, {
                   type: "manual",
                   message: "currentPostcode.selectAddressRequired",
                 });
-
                 console.warn(
                   "Blocked: no address selected for current postcode"
                 );
-                return; // stop submit here — don't trigger handleSubmit
+                return;
+              }
+
+              // ✅ Enforce previous postcode only if user has clicked "+ Add Previous Address"
+              if (
+                showPrevAddress &&
+                previousPostcode &&
+                !previousAddress?.label
+              ) {
+                e.preventDefault();
+                e.stopPropagation();
+                setError("previousPostcode" as any, {
+                  type: "manual",
+                  message: "previousPostcode.selectAddressRequired",
+                });
+                console.warn(
+                  "Blocked: no address selected for previous postcode"
+                );
+                return;
               }
             }
 

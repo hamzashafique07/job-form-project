@@ -30,6 +30,10 @@ export default function PostcodeForm() {
   const [loadingPrevious, setLoadingPrevious] = useState(false);
   const [showPrevAddress, setShowPrevAddress] = useState(false);
 
+  useEffect(() => {
+    setValue("showPrevAddressFlag", showPrevAddress);
+  }, [showPrevAddress, setValue]);
+
   const currentPostcode = watch("currentPostcode");
   const previousPostcode = watch("previousPostcode");
 
@@ -253,11 +257,16 @@ export default function PostcodeForm() {
   }, [showPrevAddress]);
 
   // small helper to manually run lookup (Find button)
-  const manualLookup = (isPrevious = false) => {
-    if (isPrevious) lookupAddress(previousPostcode, true);
-    else lookupAddress(currentPostcode, false);
-    if (isPrevious) setShowPreviousSuggestions(true);
-    else setShowCurrentSuggestions(true);
+  const manualLookup = async (isPrevious = false) => {
+    const postcode = isPrevious ? previousPostcode : currentPostcode;
+    await lookupAddress(postcode, isPrevious);
+
+    // ✅ Show suggestion list only if addresses actually exist
+    if (isPrevious) {
+      if (previousAddresses.length > 0) setShowPreviousSuggestions(true);
+    } else {
+      if (currentAddresses.length > 0) setShowCurrentSuggestions(true);
+    }
   };
 
   // click-away / blur behavior: close suggestions when clicking outside
