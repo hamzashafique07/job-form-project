@@ -93,7 +93,7 @@ export default function PostcodeForm() {
       console.error("lookupAddress error:", err);
 
       const friendlyMessage =
-        "Unable to fetch address. Please check the postcode enter valid correct postcode or try again later.";
+        "Unable to fetch address. Please check postcode enter valid correct postcode or try again later.";
 
       if (isPrevious) {
         setError("previousPostcode", {
@@ -157,10 +157,21 @@ export default function PostcodeForm() {
     currentTimer.current = window.setTimeout(() => {
       // ✅ Lookup only when postcode passes regex
       if (UK_POSTCODE_REGEX.test(trimmed)) {
+        clearErrors("currentPostcode"); // ✅ clear any old format errors
         lookupAddress(trimmed, false);
       } else {
-        // Optional: clear invalid partial suggestions
         setCurrentAddresses([]);
+
+        // ❌ invalid format -> show format error
+        if (trimmed.length > 0 && (trimmed.length < 5 || trimmed.length > 7)) {
+          setError("currentPostcode", {
+            type: "manual",
+            message: "currentPostcode.format",
+          });
+        } else {
+          // Other partial inputs (typing in progress): don’t show yet
+          clearErrors("currentPostcode");
+        }
       }
     }, 500);
 
@@ -187,9 +198,19 @@ export default function PostcodeForm() {
     previousTimer.current = window.setTimeout(() => {
       // ✅ Lookup only when postcode passes regex
       if (UK_POSTCODE_REGEX.test(trimmed)) {
+        clearErrors("previousPostcode");
         lookupAddress(trimmed, true);
       } else {
         setPreviousAddresses([]);
+
+        if (trimmed.length > 0 && (trimmed.length < 5 || trimmed.length > 7)) {
+          setError("previousPostcode", {
+            type: "manual",
+            message: "previousPostcode.format",
+          });
+        } else {
+          clearErrors("previousPostcode");
+        }
       }
     }, 500);
 

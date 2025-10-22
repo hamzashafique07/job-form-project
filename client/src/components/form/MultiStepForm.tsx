@@ -306,6 +306,29 @@ export default function MultiStepForm() {
           noValidate
           onSubmit={(e) => {
             console.log("➡️ form submit event fired for step:", currentStep);
+            // 🛑 Guard: Prevent user from going next unless an address is selected for the entered postcode
+            if (currentStep === "postcode") {
+              const currentAddress = getValues("currentAddress");
+              const postcode = getValues("currentPostcode");
+
+              // Check if postcode is entered but no address selected
+              if (postcode && !currentAddress?.label) {
+                // Prevent any async validation or reset from clearing our manual error
+                e.preventDefault();
+                e.stopPropagation();
+
+                setError("currentPostcode" as any, {
+                  type: "manual",
+                  message: "currentPostcode.selectAddressRequired",
+                });
+
+                console.warn(
+                  "Blocked: no address selected for current postcode"
+                );
+                return; // stop submit here — don't trigger handleSubmit
+              }
+            }
+
             handleSubmit(onSubmit, (errors) => {
               console.warn("❌ validation failed, errors:", errors);
             })(e);

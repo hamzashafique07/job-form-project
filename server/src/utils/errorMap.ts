@@ -41,6 +41,8 @@ export function mapErrorKeyToMessage(key: string) {
     "currentPostcode.lookupNoResults":
       "No addresses found for that postcode. Please enter correct valid postcode.",
     "currentPostcode.lookupFailed": "Address lookup failed. Please try again.",
+    "currentPostcode.selectAddressRequired":
+      "Please select address for current postcode to proceed",
     "currentAddress.manualRequired": "Please enter your address.",
     "previousPostcode.format":
       "Postcode must be digits only and 5–7 characters.",
