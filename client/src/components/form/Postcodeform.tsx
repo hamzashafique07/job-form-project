@@ -40,6 +40,17 @@ export default function PostcodeForm() {
   // debounce timers
   const currentTimer = useRef<number | null>(null);
   const previousTimer = useRef<number | null>(null);
+  // ✅ Helper: Filters out incomplete address objects
+  function filterCompleteAddresses(addresses: Address[]): Address[] {
+    return addresses.filter(
+      (a) =>
+        a.house?.trim() &&
+        a.street?.trim() &&
+        a.city?.trim() &&
+        a.county?.trim() &&
+        a.postcode?.trim()
+    );
+  }
 
   // lookupAddress unchanged business-logic; still calls server endpoint
   const lookupAddress = async (postcode: string, isPrevious = false) => {
@@ -62,7 +73,10 @@ export default function PostcodeForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Lookup failed");
 
-      const addresses: Address[] = data.addresses || [];
+      let addresses: Address[] = data.addresses || [];
+
+      // ✅ filter out incomplete ones
+      addresses = filterCompleteAddresses(addresses);
 
       if (addresses.length === 0) {
         // ❌ No addresses found — show clear error message
