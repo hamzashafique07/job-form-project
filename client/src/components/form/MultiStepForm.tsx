@@ -14,6 +14,8 @@ import AddressLookupForm from "./AddressLookupForm";
 import FinalSubmitForm from "./FinalSubmitForm";
 import { useEffect } from "react";
 import { mapErrorKeyToMessage } from "../../utils/errorMapClient";
+import LoadingScreen from "./LoadingScreen";
+import ThankYouScreen from "./ThankYouScreen";
 
 // Step order
 const steps = [
@@ -26,6 +28,9 @@ const steps = [
 export default function MultiStepForm() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [formId, setFormId] = useState<string | null>(null);
+
+  // 🆕 track UI state: normal form, loading animation, or thank-you page
+  const [status, setStatus] = useState<"form" | "loading" | "thankyou">("form");
 
   const currentStep = steps[currentStepIndex];
   const schema = getSchemaForStep(currentStep);
@@ -104,6 +109,83 @@ export default function MultiStepForm() {
 
     // 🧠 Depend on the safe serialized version
   }, [setError, JSON.stringify(safeSerializeErrors(formState.errors))]);
+
+  // 🪄 helper: auto-run address-lookup + final-submit logic silently
+  async function runHiddenSubmissionFlow(
+    fullFormData: any,
+    formId: string | null
+  ) {
+    try {
+      setStatus("loading"); // show loading screen
+
+      // 🔹 Step 3: mimic address-lookup validation + save
+      const addressRes = await fetch("/api/forms/validate-step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stepId: "address-lookup",
+          data: fullFormData,
+          formId,
+        }),
+      });
+      const addressBody = await addressRes.json();
+      console.log("← hidden validate-step (address-lookup):", addressBody);
+
+      await fetch("/api/forms/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formId, data: fullFormData }),
+      });
+
+      // 🔹 Step 4: upload signature + final submit
+      const finalFormId = formId;
+      const finalData = {
+        ...fullFormData,
+        formId: finalFormId,
+        optinurl: window.location.href,
+      };
+
+      // Upload signature (same as before)
+      if (finalData.signatureBase64 && !finalData.signatureFileUrl) {
+        try {
+          const uploadRes = await fetch("/api/upload/signature", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              signatureBase64: finalData.signatureBase64,
+              formId: finalFormId,
+            }),
+          });
+          const uploadBody = await uploadRes.json();
+          if (uploadRes.ok && uploadBody.signatureFileUrl) {
+            finalData.signatureFileUrl = uploadBody.signatureFileUrl;
+          }
+        } catch (err) {
+          console.error("✖ Hidden signature upload failed:", err);
+        }
+      }
+
+      // Submit final form
+      const submitRes = await fetch("/api/forms/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formId: finalFormId, data: finalData }),
+      });
+      const submitBody = await submitRes.json();
+      console.log("← hidden submit body:", submitBody);
+
+      if (submitRes.ok) {
+        console.log("✅ Hidden flow complete → show thank-you");
+        setStatus("thankyou");
+      } else {
+        console.error("❌ Hidden flow submit failed", submitBody);
+        setStatus("form");
+      }
+    } catch (err) {
+      console.error("✖ Hidden flow error:", err);
+      setStatus("form");
+    }
+  }
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     console.log(
@@ -209,9 +291,15 @@ export default function MultiStepForm() {
 
       if (newFormId) setFormId(newFormId);
 
+      if (currentStep === "personal-details") {
+        // 🧩 after personal details → run hidden steps 3 + 4
+        await runHiddenSubmissionFlow(fullFormData, newFormId);
+        return;
+      }
+
       if (currentStepIndex < steps.length - 1) {
         setCurrentStepIndex((prev) => prev + 1);
-        reset(fullFormData); // preserve all filled values
+        reset(fullFormData);
       } else {
         // 🧩 Always ensure formId is defined from all possible sources
         const finalFormId = newFormId || formId || body.formId;
@@ -254,6 +342,9 @@ export default function MultiStepForm() {
           }
         }
 
+        // 🌀 show loading screen while doing background submission
+        setStatus("loading");
+
         // 🧾 Step 2: Continue with your existing /api/forms/submit call
         console.log(
           "→ calling /api/forms/submit with finalFormId:",
@@ -274,9 +365,10 @@ export default function MultiStepForm() {
         }
 
         if (submitRes.ok) {
-          alert("🎉 Form submitted successfully!");
-          console.log("Submitted form response:", submitBody);
+          console.log("✅ Form submitted successfully:", submitBody);
+          setStatus("thankyou"); // 🆕 show thank-you screen
         } else {
+          console.error("❌ Submit failed:", submitBody);
           if (Array.isArray(submitBody?.errors)) {
             submitBody.errors.forEach(
               (e: { field: string; message: string }) => {
@@ -286,17 +378,19 @@ export default function MultiStepForm() {
                 });
               }
             );
-          } else {
-            console.error("❌ submit error:", submitBody);
-            alert("❌ Failed to submit form. Check console.");
           }
+          // Optionally revert to form if something breaks
+          setStatus("form");
         }
       }
     } catch (err) {
       console.error("✖ onSubmit caught error:", err);
-      alert("Server error — check console");
+      setStatus("form");
     }
   };
+  // 🆕 Handle UI switching
+  if (status === "loading") return <LoadingScreen />;
+  if (status === "thankyou") return <ThankYouScreen />;
 
   return (
     <FormCard title={`Step ${currentStepIndex + 1}: ${currentStep}`}>
@@ -362,13 +456,13 @@ export default function MultiStepForm() {
             />
           )}
 
-          {currentStep === "address-lookup" && (
+          {/* {currentStep === "address-lookup" && (
             <AddressLookupForm register={register} errors={formState.errors} />
           )}
 
           {currentStep === "final" && (
             <FinalSubmitForm register={register} errors={formState.errors} />
-          )}
+          )} */}
 
           <div className="flex justify-end">
             <Button type="submit">
