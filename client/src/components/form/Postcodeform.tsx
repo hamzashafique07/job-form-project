@@ -282,6 +282,13 @@ export default function PostcodeForm() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
+  const clearPreviousAddress = React.useCallback(() => {
+    setPreviousAddresses([]);
+    setValue("previousPostcode", "");
+    setValue("previousAddress", null); // ✅ fully clear nested object safely
+    clearErrors("previousPostcode");
+  }, [setValue, clearErrors]);
+
   return (
     <div className="space-y-6">
       {/* Current Postcode */}
@@ -427,15 +434,7 @@ export default function PostcodeForm() {
                 type="button"
                 onClick={() => {
                   setShowPrevAddress(false);
-                  setPreviousAddresses([]);
-                  setValue("previousPostcode", "");
-                  setValue("previousAddress.house", "");
-                  setValue("previousAddress.street", "");
-                  setValue("previousAddress.city", "");
-                  setValue("previousAddress.county", "");
-                  setValue("previousAddress.postcode", "");
-                  setValue("previousAddress.label", "");
-                  clearErrors("previousPostcode");
+                  clearPreviousAddress(); // ✅ cleaner, single responsibility
                 }}
                 className="bg-red-500 text-white px-3 py-1 rounded"
               >

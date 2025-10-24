@@ -115,6 +115,20 @@ export default function MultiStepForm() {
     fullFormData: any,
     formId: string | null
   ) {
+    // 🧹 Clean invalid/null optional fields before hitting backend
+    const sanitizedData = { ...fullFormData };
+
+    // Remove empty previous address or postcode safely
+    if (!sanitizedData.previousPostcode) {
+      delete sanitizedData.previousPostcode;
+    }
+    if (
+      sanitizedData.previousAddress == null ||
+      (typeof sanitizedData.previousAddress === "object" &&
+        Object.keys(sanitizedData.previousAddress).length === 0)
+    ) {
+      delete sanitizedData.previousAddress;
+    }
     try {
       setStatus("loading"); // show loading screen
 
@@ -124,7 +138,7 @@ export default function MultiStepForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stepId: "address-lookup",
-          data: fullFormData,
+          data: sanitizedData,
           formId,
         }),
       });
@@ -134,13 +148,14 @@ export default function MultiStepForm() {
       await fetch("/api/forms/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formId, data: fullFormData }),
+        body: JSON.stringify({ formId, data: sanitizedData }),
       });
 
       // 🔹 Step 4: upload signature + final submit
       const finalFormId = formId;
+
       const finalData = {
-        ...fullFormData,
+        ...sanitizedData,
         formId: finalFormId,
         optinurl: window.location.href,
       };
@@ -423,21 +438,35 @@ export default function MultiStepForm() {
               }
 
               // ✅ Enforce previous postcode only if user has clicked "+ Add Previous Address"
-              if (
-                showPrevAddress &&
-                previousPostcode &&
-                !previousAddress?.label
-              ) {
-                e.preventDefault();
-                e.stopPropagation();
-                setError("previousPostcode" as any, {
-                  type: "manual",
-                  message: "previousPostcode.selectAddressRequired",
-                });
-                console.warn(
-                  "Blocked: no address selected for previous postcode"
-                );
-                return;
+              // ✅ Enforce previous postcode rules when "+ Add Previous Address" is active
+              if (showPrevAddress) {
+                // 🚫 Block if postcode is empty
+                if (!previousPostcode) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setError("previousPostcode" as any, {
+                    type: "manual",
+                    message:
+                      "Please fill the previous postcode or remove the previous address",
+                  });
+                  console.warn("Blocked: previous postcode is empty");
+                  return;
+                }
+
+                // 🚫 Block if postcode entered but address not selected
+                if (previousPostcode && !previousAddress?.label) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setError("previousPostcode" as any, {
+                    type: "manual",
+                    message:
+                      "Please select an address for the previous postcode",
+                  });
+                  console.warn(
+                    "Blocked: no address selected for previous postcode"
+                  );
+                  return;
+                }
               }
             }
 
