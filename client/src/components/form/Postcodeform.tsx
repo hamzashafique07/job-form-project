@@ -30,6 +30,14 @@ export default function PostcodeForm() {
   const [loadingPrevious, setLoadingPrevious] = useState(false);
   const [showPrevAddress, setShowPrevAddress] = useState(false);
 
+  // debounce timers
+  const currentTimer = useRef<number | null>(null);
+  const previousTimer = useRef<number | null>(null);
+
+  // NEW: skip flags to avoid triggering lookup when we programmatically set the postcode
+  const skipCurrentLookup = useRef(false);
+  const skipPreviousLookup = useRef(false);
+
   useEffect(() => {
     setValue("showPrevAddressFlag", showPrevAddress);
   }, [showPrevAddress, setValue]);
@@ -41,9 +49,6 @@ export default function PostcodeForm() {
   const [showCurrentSuggestions, setShowCurrentSuggestions] = useState(false);
   const [showPreviousSuggestions, setShowPreviousSuggestions] = useState(false);
 
-  // debounce timers
-  const currentTimer = useRef<number | null>(null);
-  const previousTimer = useRef<number | null>(null);
   // ✅ Helper: Filters out incomplete address objects
   function filterCompleteAddresses(addresses: Address[]): Address[] {
     return addresses.filter(
@@ -141,9 +146,15 @@ export default function PostcodeForm() {
     setValue(`${prefix}.county`, address.county || "");
     setValue(`${prefix}.postcode`, address.postcode);
     setValue(`${prefix}.label`, address.label);
-    // also set the postcode field itself to the normalized postcode (optional UX)
-    if (isPrevious) setValue("previousPostcode", address.postcode);
-    else setValue("currentPostcode", address.postcode);
+
+    // NEW: set skip flag so the watcher does not trigger a lookup for this programmatic change
+    if (isPrevious) {
+      skipPreviousLookup.current = true;
+      setValue("previousPostcode", address.postcode);
+    } else {
+      skipCurrentLookup.current = true;
+      setValue("currentPostcode", address.postcode);
+    }
 
     // hide suggestions after select
     if (isPrevious) setShowPreviousSuggestions(false);
@@ -162,6 +173,14 @@ export default function PostcodeForm() {
     if (currentTimer.current) window.clearTimeout(currentTimer.current);
 
     const trimmed = currentPostcode?.trim().toUpperCase() || "";
+
+    // NEW: if this change came from programmatic selectAddress we should skip lookup once
+    if (skipCurrentLookup.current) {
+      // reset flag and skip this effect's lookup logic
+      skipCurrentLookup.current = false;
+      // still keep suggestions hidden (because selectAddress already hides them)
+      return;
+    }
 
     if (!trimmed) {
       setCurrentAddresses([]);
@@ -204,6 +223,12 @@ export default function PostcodeForm() {
     if (previousTimer.current) window.clearTimeout(previousTimer.current);
 
     const trimmed = previousPostcode?.trim().toUpperCase() || "";
+
+    // NEW: skip when programmatically set by selecting an address
+    if (skipPreviousLookup.current) {
+      skipPreviousLookup.current = false;
+      return;
+    }
 
     if (!trimmed) {
       setPreviousAddresses([]);
