@@ -93,7 +93,10 @@ export const addressObjectSchema = z.object({
   house: z.string().min(1, { message: "address.field.required" }),
   street: z.string().min(1, { message: "address.field.required" }),
   city: z.string().min(1, { message: "address.field.required" }),
-  county: z.string().min(1, { message: "address.field.required" }),
+  county: z
+    .string()
+    .optional()
+    .transform((val) => val ?? ""), // ✅ optional now
   postcode: z.string().min(1, { message: "address.field.required" }),
 });
 

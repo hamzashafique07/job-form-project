@@ -71,7 +71,6 @@ export default function PostcodeForm({
         a.house?.trim() &&
         a.street?.trim() &&
         a.city?.trim() &&
-        a.county?.trim() &&
         a.postcode?.trim()
     );
   }
