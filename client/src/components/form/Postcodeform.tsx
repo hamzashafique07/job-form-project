@@ -13,7 +13,11 @@ type Address = {
   postcode: string;
 };
 
-export default function PostcodeForm() {
+export default function PostcodeForm({
+  returningToPostcode = false,
+}: {
+  returningToPostcode?: boolean;
+}) {
   const {
     register,
     setValue,
@@ -37,6 +41,17 @@ export default function PostcodeForm() {
   // NEW: skip flags to avoid triggering lookup when we programmatically set the postcode
   const skipCurrentLookup = useRef(false);
   const skipPreviousLookup = useRef(false);
+
+  // 🧠 Restore previously toggled state (when user returns to postcode step)
+  useEffect(() => {
+    const savedFlag = localStorage.getItem("showPrevAddress");
+    if (savedFlag === "true") setShowPrevAddress(true);
+  }, []);
+
+  // 🧹 Save toggle state persistently whenever it changes
+  useEffect(() => {
+    localStorage.setItem("showPrevAddress", String(showPrevAddress));
+  }, [showPrevAddress]);
 
   useEffect(() => {
     setValue("showPrevAddressFlag", showPrevAddress);
@@ -170,6 +185,14 @@ export default function PostcodeForm() {
 
   // --- Current Postcode watcher ---
   useEffect(() => {
+    // 🚫 If user is returning, skip running this effect altogether
+    // 🚫 Skip lookups entirely if user is returning — prevent re-trigger on mount
+    if (returningToPostcode) {
+      skipCurrentLookup.current = true;
+      skipPreviousLookup.current = true;
+      return;
+    }
+
     if (currentTimer.current) window.clearTimeout(currentTimer.current);
 
     const trimmed = currentPostcode?.trim().toUpperCase() || "";
@@ -220,6 +243,13 @@ export default function PostcodeForm() {
 
   // --- Previous Postcode watcher ---
   useEffect(() => {
+    // 🚫 Skip lookups entirely if user is returning — prevent re-trigger on mount
+    if (returningToPostcode) {
+      skipCurrentLookup.current = true;
+      skipPreviousLookup.current = true;
+      return;
+    }
+
     if (previousTimer.current) window.clearTimeout(previousTimer.current);
 
     const trimmed = previousPostcode?.trim().toUpperCase() || "";

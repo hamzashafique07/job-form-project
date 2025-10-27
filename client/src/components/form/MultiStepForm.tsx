@@ -29,6 +29,9 @@ export default function MultiStepForm() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [formId, setFormId] = useState<string | null>(null);
 
+  // 🧩 Track when user navigates back to postcode step
+  const [returningToPostcode, setReturningToPostcode] = useState(false);
+
   // 🆕 track UI state: normal form, loading animation, or thank-you page
   const [status, setStatus] = useState<"form" | "loading" | "thankyou">("form");
 
@@ -65,6 +68,14 @@ export default function MultiStepForm() {
     }
     return clone;
   }
+
+  // 🧩 Reset returningToPostcode flag once user is back on postcode step
+  useEffect(() => {
+    if (returningToPostcode && currentStep === "postcode") {
+      setReturningToPostcode(false);
+    }
+  }, [currentStep, returningToPostcode]);
+
   // 🧩 Enhanced client-side error mapper (safe + persistent)
   useEffect(() => {
     if (!formState.errors) return;
@@ -313,6 +324,7 @@ export default function MultiStepForm() {
       }
 
       if (currentStepIndex < steps.length - 1) {
+        // ✅ Do NOT clear localStorage here; we want to preserve showPrevAddress
         setCurrentStepIndex((prev) => prev + 1);
         reset(fullFormData);
       } else {
@@ -475,7 +487,9 @@ export default function MultiStepForm() {
             })(e);
           }}
         >
-          {currentStep === "postcode" && <PostcodeForm />}
+          {currentStep === "postcode" && (
+            <PostcodeForm returningToPostcode={returningToPostcode} />
+          )}
 
           {currentStep === "personal-details" && (
             <PersonalDetailsForm
@@ -493,7 +507,25 @@ export default function MultiStepForm() {
             <FinalSubmitForm register={register} errors={formState.errors} />
           )} */}
 
-          <div className="flex justify-end">
+          <div className="flex justify-between mt-6">
+            {currentStepIndex > 0 ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  // 🧠 If user is returning from personal-details → postcode, set flag
+                  if (currentStepIndex === 1) {
+                    setReturningToPostcode(true);
+                    console.log("🔙 User navigating back to postcode step");
+                  }
+                  setCurrentStepIndex((i) => i - 1);
+                }}
+              >
+                ← Back
+              </Button>
+            ) : (
+              <div /> // keeps layout consistent even on first step
+            )}
+
             <Button type="submit">
               {currentStepIndex < steps.length - 1 ? "Next Step" : "Submit"}
             </Button>
