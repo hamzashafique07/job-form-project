@@ -85,6 +85,8 @@ export async function validateStep(req: Request, res: Response) {
     }
 
     let form = null;
+
+    // 🩵 Prevent empty record creation on step 1
     if (formId) {
       form = await Form.findByIdAndUpdate(
         formId,
@@ -96,13 +98,15 @@ export async function validateStep(req: Request, res: Response) {
         },
         { new: true }
       );
-    } else {
+    } else if (stepId !== "personal-details") {
+      // Only create new Form AFTER step 1
       const stepsObj = buildNestedObject(mappedPath, persistedData);
       form = await Form.create({ steps: stepsObj });
     }
 
+    // 🩵 If we skipped DB creation (e.g., step 1), just return valid without formId
     if (!form) {
-      return res.status(500).json({ error: "Failed to save form" });
+      return res.json({ valid: true });
     }
 
     return res.json({ valid: true, formId: form._id.toString() });

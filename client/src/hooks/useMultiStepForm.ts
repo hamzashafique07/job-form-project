@@ -252,12 +252,31 @@ export default function useMultiStepForm() {
 
         const fullFormData = { ...getValues(), ...data };
         console.log(
-          "→ calling /api/forms/save with fullFormData:",
+          "→ (modified) handling save/navigation for fullFormData:",
           fullFormData,
           "formIdCandidate:",
           formId || body.formId
         );
 
+        // If this is the postcode step, skip calling /api/forms/save to avoid creating a placeholder DB record.
+        // We still validated the data above, so safely advance to next step and preserve form values in client.
+        if (currentStep === "postcode") {
+          console.log(
+            "ℹ️ Skipping /api/forms/save for 'postcode' step (no DB write)."
+          );
+          // If server returned a formId for some reason, keep it
+          if (body.formId) setFormId(body.formId);
+
+          // Advance UI to next step exactly as original flow would
+          if (currentStepIndex < steps.length - 1) {
+            setCurrentStepIndex((prev) => prev + 1);
+            reset(fullFormData);
+          }
+          // End early — do not call save / hidden flows on postcode
+          return;
+        }
+
+        // OTHERWISE (not postcode) — perform the existing save behavior (unchanged)
         const saveRes = await fetch("/api/forms/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -308,6 +327,9 @@ export default function useMultiStepForm() {
           setCurrentStepIndex((prev) => prev + 1);
           reset(fullFormData);
         } else {
+          // final submit flow (same as before)
+          // (the remainder of onSubmit continues unchanged)
+
           // final submit flow (same as before)
           const finalFormId = newFormId || formId || body.formId;
           const finalData = {
