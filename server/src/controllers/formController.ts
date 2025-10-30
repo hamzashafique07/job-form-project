@@ -304,19 +304,24 @@ export async function submitForm(req: Request, res: Response) {
         apiPasswordKeyRef: form.apiCredentialsUsed?.apiPasswordKeyRef || null,
       });
 
+      // 🩵 Robust CRM result evaluation (safe, non-breaking)
       if (
-        crmResult.ok &&
-        crmResult.status &&
-        crmResult.status >= 200 &&
-        crmResult.status < 300
+        crmResult?.ok &&
+        crmResult?.status >= 200 &&
+        crmResult?.status < 300
       ) {
         form.crmStatus = "sent";
         form.crmResponse = crmResult.data;
       } else if (
-        crmResult.ok === false &&
-        crmResult.status &&
-        crmResult.status >= 500
+        crmResult?.data &&
+        typeof crmResult.data === "object" &&
+        (crmResult.data.status_text?.toLowerCase() === "sold" ||
+          crmResult.data.status_text?.toLowerCase() === "accepted")
       ) {
+        // ✅ Phonexa confirmed lead sale
+        form.crmStatus = "sold";
+        form.crmResponse = crmResult.data;
+      } else if (crmResult?.status && crmResult.status >= 500) {
         form.crmStatus = "queued";
         form.crmResponse = {
           status: crmResult.status,
@@ -326,9 +331,9 @@ export async function submitForm(req: Request, res: Response) {
       } else {
         form.crmStatus = "failed";
         form.crmResponse = {
-          status: (crmResult as any).status || null,
-          body: (crmResult as any).data || null,
-          error: (crmResult as any).error || null,
+          status: crmResult?.status || null,
+          body: crmResult?.data || null,
+          error: crmResult?.error || null,
         };
       }
 
