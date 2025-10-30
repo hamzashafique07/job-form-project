@@ -97,6 +97,12 @@ export const addressObjectSchema = z.object({
     .string()
     .optional()
     .transform((val) => val ?? ""), // ✅ optional now
+
+  district: z
+    .string()
+    .optional()
+    .transform((val) => val ?? ""), // ✅ new safe optional field
+
   postcode: z.string().min(1, { message: "address.field.required" }),
 });
 

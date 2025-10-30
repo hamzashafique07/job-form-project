@@ -7,6 +7,7 @@ const AddressSchema = new mongoose.Schema(
     street: String,
     city: String,
     county: String,
+    district: String, // ✅ new field (optional)
     postcode: String,
   },
   { _id: false }

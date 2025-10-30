@@ -28,7 +28,8 @@ router.post("/lookup", async (req, res) => {
         house: a.line_1,
         street: [a.line_2, a.line_3].filter(Boolean).join(" "),
         city: a.town_or_city,
-        county: a.county || "",
+        county: a.county || a.district || "", // ✅ fallback to district if county missing
+        district: a.district || "", // ✅ store district explicitly
         postcode: data.postcode, // use top-level postcode
       })),
     };

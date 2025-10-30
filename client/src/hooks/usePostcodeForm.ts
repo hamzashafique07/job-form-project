@@ -9,6 +9,7 @@ type Address = {
   street?: string;
   city?: string;
   county?: string;
+  district?: string; // 🆕 added
   postcode: string;
 };
 
@@ -150,7 +151,10 @@ export function usePostcodeForm(returningToPostcode = false) {
       setValue(`${prefix}.house`, address.house || "");
       setValue(`${prefix}.street`, address.street || "");
       setValue(`${prefix}.city`, address.city || "");
-      setValue(`${prefix}.county`, address.county || "");
+      setValue(
+        `${prefix}.county`,
+        address.county?.trim() || address.district?.trim() || ""
+      );
       setValue(`${prefix}.postcode`, address.postcode);
       setValue(`${prefix}.label`, address.label);
 
