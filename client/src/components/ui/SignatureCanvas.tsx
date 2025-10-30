@@ -1,4 +1,4 @@
-//client/src/components/ui/SignatureCanvas.tsx
+//client/src/compon
 /** @format */
 import React, { useRef } from "react";
 import SignatureCanvasLib from "react-signature-canvas";
@@ -15,29 +15,53 @@ export default function SignatureCanvas({ value, onChange, error }: Props) {
   const handleEnd = () => {
     if (!sigRef.current) return;
 
-    // Get original canvas
     const canvas = sigRef.current.getCanvas();
+    if (!canvas) return;
 
-    // Temporary canvas for compression
+    // --- create temporary canvas for compression ---
     const tmp = document.createElement("canvas");
-    const scale = 0.6; // safe range 0.5–0.7
+    const scale = 0.5; // slightly smaller than before (0.6 → 0.5)
     tmp.width = canvas.width * scale;
     tmp.height = canvas.height * scale;
 
     const ctx = tmp.getContext("2d");
     if (!ctx) return;
 
-    // ✅ Fill white background to preserve signature contrast
+    // --- white background for proper contrast ---
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, tmp.width, tmp.height);
 
-    // ✅ Draw signature content on top
+    // --- draw the signature scaled down ---
     ctx.drawImage(canvas, 0, 0, tmp.width, tmp.height);
 
-    // ✅ Export compressed JPEG (still small)
-    const compressedBase64 = tmp.toDataURL("image/jpeg", 0.3);
+    // --- export with adaptive compression ---
+    // WebP gives better compression; fallback to JPEG if not supported
+    let compressedBase64 = "";
+    try {
+      compressedBase64 = tmp.toDataURL("image/webp", 0.2); // smaller than before (0.3 → 0.2)
+    } catch {
+      compressedBase64 = tmp.toDataURL("image/jpeg", 0.25);
+    }
 
-    onChange(compressedBase64);
+    // Extra safety: if still huge (> 100 KB), re-compress smaller
+    if (compressedBase64.length > 100000) {
+      const img = new Image();
+      img.src = compressedBase64;
+      img.onload = () => {
+        const small = document.createElement("canvas");
+        const smallerScale = 0.4;
+        small.width = img.width * smallerScale;
+        small.height = img.height * smallerScale;
+        const c2 = small.getContext("2d");
+        if (!c2) return;
+        c2.fillStyle = "white";
+        c2.fillRect(0, 0, small.width, small.height);
+        c2.drawImage(img, 0, 0, small.width, small.height);
+        onChange(small.toDataURL("image/jpeg", 0.2));
+      };
+    } else {
+      onChange(compressedBase64);
+    }
   };
 
   const clear = () => {
