@@ -38,6 +38,47 @@ export default function PersonalDetailsForm({
     return d.toISOString().slice(0, 10);
   })();
 
+  // DOB state for dropdowns
+  const [day, setDay] = useState<string>("");
+  const [month, setMonth] = useState<string>("");
+  const [year, setYear] = useState<string>("");
+
+  // Watch form value to prefill if already set
+  React.useEffect(() => {
+    const dobValue = watch("dob");
+    if (dobValue) {
+      const [y, m, d] = dobValue.split("-");
+      setDay(d);
+      setMonth(m);
+      setYear(y);
+    }
+  }, [watch("dob")]);
+
+  // Handle DOB changes
+  const handleDobChange = (
+    d: string | null,
+    m: string | null,
+    y: string | null,
+    changedField: "day" | "month" | "year"
+  ) => {
+    if (changedField === "day") setDay(d || "");
+    if (changedField === "month") setMonth(m || "");
+    if (changedField === "year") setYear(y || "");
+
+    if (d && m && y) {
+      const formatted = `${y}-${m.toString().padStart(2, "0")}-${d
+        .toString()
+        .padStart(2, "0")}`;
+      setValue("dob", formatted, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      trigger("dob");
+    } else {
+      setValue("dob", "", { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
   return (
     <>
       {/* IVA */}
@@ -134,31 +175,75 @@ export default function PersonalDetailsForm({
         error={errors.lastName?.message}
       />
 
-      {/* DOB */}
-      {/* DOB - React DatePicker, but compatible with your old string-based logic */}
+      {/* DOB - User-friendly dropdown picker */}
       <div className="mb-4">
         <label className="block font-medium mb-1">Date of birth</label>
-        <DatePicker
-          selected={
-            watch("dob") ? new Date(watch("dob")) : null // ensure proper Date value
-          }
-          onChange={(date: Date | null) => {
-            // Always send a string (not undefined!)
-            const formatted = date ? format(date, "yyyy-MM-dd") : "";
-            setValue("dob", formatted, {
-              shouldValidate: true,
-              shouldDirty: true,
-            });
-            trigger("dob"); // re-run validation instantly
-          }}
-          dateFormat="dd/MM/yyyy"
-          placeholderText="Click to select your date of birth"
-          maxDate={new Date(maxDob)}
-          showMonthDropdown
-          showYearDropdown
-          dropdownMode="select"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+
+        <div className="flex gap-2">
+          {/* Day Dropdown */}
+          <select
+            className="w-1/3 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={day || ""}
+            onChange={(e) =>
+              handleDobChange(e.target.value, month, year, "day")
+            }
+          >
+            <option value="">Day</option>
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+              <option key={d} value={d}>
+                {d.toString().padStart(2, "0")}
+              </option>
+            ))}
+          </select>
+
+          {/* Month Dropdown */}
+          <select
+            className="w-1/3 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={month || ""}
+            onChange={(e) =>
+              handleDobChange(day, e.target.value, year, "month")
+            }
+          >
+            <option value="">Month</option>
+            {[
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
+            ].map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+
+          {/* Year Dropdown */}
+          <select
+            className="w-1/3 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={year || ""}
+            onChange={(e) =>
+              handleDobChange(day, month, e.target.value, "year")
+            }
+          >
+            <option value="">Year</option>
+            {Array.from({ length: 2007 - 1900 + 1 }, (_, i) => 2007 - i).map(
+              (y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              )
+            )}
+          </select>
+        </div>
+
         {errors.dob && (
           <p className="text-red-600 mt-1">{errors.dob.message}</p>
         )}

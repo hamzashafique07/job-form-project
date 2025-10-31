@@ -77,7 +77,7 @@ export default function SignatureCanvas({ value, onChange, error }: Props) {
           ref={sigRef}
           penColor="black"
           canvasProps={{
-            className: "w-full h-40 bg-white rounded-md",
+            className: "w-full h-60 bg-white rounded-md",
           }}
           onEnd={handleEnd}
         />

@@ -9,8 +9,10 @@ export default function FormCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
-      {title && <h2 className="text-xl font-semibold mb-4">{title}</h2>}
+    <div className="max-w-4xl mx-auto pl-4 pr-4 pt-4 bg-white/90 backdrop-blur-sm rounded-2xl ">
+      {title && (
+        <h2 className="text-2xl font-medium mb-6 text-gray-800">{title}</h2>
+      )}
       {children}
     </div>
   );
